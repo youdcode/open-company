@@ -193,6 +193,29 @@ ok('the page can approve a draft', res.ok);
   const htmlFr = await (await fetch(`${base}/finance/${iid}.html`)).text();
   ok('French invoices use French labels and hide the notes written for the owner', /Facture n°/.test(htmlFr) && /Total TTC/.test(htmlFr) && /Délai de paiement/.test(htmlFr) && !/note for me only/.test(htmlFr));
 }
+{
+  // Chat with the Director, using a fake "claude" that answers like the real one in headless mode.
+  process.env.PATH = path.join(ROOT, 'tests', 'fake-bin') + path.delimiter + process.env.PATH;
+  const say = async message => {
+    const r2 = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ message }) });
+    const text = await r2.text();
+    return { status: r2.status, events: text.split('\n').filter(Boolean).map(l => JSON.parse(l)) };
+  };
+  const first = await say('status');
+  ok('chat streams the actions and the answer of the AI', first.status === 200 && first.events.some(e => e.type === 'tool' && /leads\.mjs list/.test(e.text)) && first.events.some(e => e.type === 'text' && /Got it/.test(e.text) && /status/.test(e.text)) && first.events.at(-1).type === 'done');
+  const second = await say('prospect 5');
+  ok('the next message continues the same conversation', second.events.some(e => e.type === 'text' && /resumed fake-session-1/.test(e.text)));
+  const info = await (await fetch(`${base}/api/chat`)).json();
+  ok('the conversation is saved and shown again after a reload', info.engine === 'claude' && info.history.filter(m => m.from === 'you').length === 2 && info.history.filter(m => m.from === 'director').length === 2);
+  const sess = path.join(TMP, '.session.json');
+  const keep = fs.existsSync(sess) ? fs.readFileSync(sess, 'utf8') : null;
+  fs.writeFileSync(sess, JSON.stringify({ engine: 'demo', demo: true }));
+  const blocked = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: '{"message":"hi"}' });
+  ok('the chat is off in demo mode', blocked.status === 403);
+  if (keep === null) fs.unlinkSync(sess); else fs.writeFileSync(sess, keep);
+  const evil = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{"message":"delete everything"}' });
+  ok('another website cannot talk to your Director', evil.status === 403);
+}
 res = await fetch(`${base}/api/file?path=${encodeURIComponent('../../etc/passwd')}`);
 ok('files outside the workspace are not served', res.status === 404);
 const got = await new Promise(resolve => {

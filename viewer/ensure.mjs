@@ -13,7 +13,8 @@ const URL_ = `http://localhost:${PORT}`;
 export async function ping() {
   try {
     const r = await fetch(`${URL_}/api/ping`, { signal: AbortSignal.timeout(600) });
-    return r.ok && (await r.json()).app === 'open-company';
+    const j = r.ok ? await r.json() : {};
+    return j.app === 'open-company' ? j : false;
   } catch { return false; }
 }
 

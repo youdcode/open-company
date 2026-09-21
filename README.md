@@ -53,9 +53,10 @@ cd open-company
 ./start            # Windows: start.cmd
 ```
 
-`./start` finds the AI tools installed on your computer, opens the live office at
-http://localhost:4747, and launches the AI you pick in this folder. On the first run the Director
-interviews you for a few minutes (`setup`), then you can type:
+`./start` opens the live office at http://localhost:4747 with a **Chat** tab: you talk to the Director
+there, and watch the team work in the other tabs. The AI tools installed on your computer are listed in
+the chat (Claude Code, Codex, OpenCode), and you can switch between them. On the first run, click
+`setup`: the Director interviews you for a few minutes. Then you can type:
 
 | Type | What happens |
 |---|---|
@@ -71,8 +72,12 @@ interviews you for a few minutes (`setup`), then you can type:
 | `sprint "launch in Belgium"` | The whole company works on one goal, the auditor reviews |
 | `export` | Approved messages go to a CSV for your own email tool |
 
-You can also open the folder directly with your AI tool (`claude`, `codex`, `opencode`, `agy`) and
-type `start`.
+Prefer the terminal? `./start --terminal` runs the AI tool in the terminal instead, and the page still
+shows everything. You can also open the folder directly with your AI tool (`claude`, `codex`,
+`opencode`, `agy`) and type `start`.
+
+Each chat message runs your AI tool in this folder in headless mode, with your own login, and continues
+the same conversation. Log in to your AI tool once in a terminal before the first chat.
 
 ## Supported AI tools
 
@@ -99,9 +104,10 @@ are enforced by scripts, and why you approve everything. Reports from people tes
 
 ## The live office
 
-A local web page (it never calls an AI, so it costs nothing) that shows:
+A local web page that shows:
 
 - **Office**: the organization chart, who is working right now, and a live activity feed
+- **Chat**: talk to the Director; its actions appear as they happen (the only tab that uses your AI)
 - **Pipeline**: every lead with its score, signals, next action and sources
 - **Outreach**: drafted messages with Approve and Reject buttons
 - **Finance**: quotes and invoices; you issue them (which gives the next number), mark them paid, print to PDF
@@ -185,7 +191,8 @@ Start with small batches (`prospect 5`) to see what your plan allows.
 
 ## What runs on your computer
 
-- `./start`: prepares `workspace/`, serves the live office, launches your AI tool.
+- `./start`: prepares `workspace/`, serves the live office and its chat. Each chat message starts your AI
+  tool in this folder (headless) with the same limited permissions as below.
 - `./start --demo`: replays a fictional session in `.demo/` (recreated each time, never committed).
 - Session hooks (`.claude/settings.json`, `.codex/hooks.json`): run `node viewer/ensure.mjs`, which
   starts the live office if it is not running. That is all they do. When you open the folder

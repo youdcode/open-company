@@ -13,10 +13,12 @@ import {
 import { parseBoard } from '../tools/board.mjs';
 import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
 import { listDocs, setDocStatus, htmlOf, billing } from '../tools/invoice.mjs';
+import { chatInfo, sendChat, setEngine, newConversation, stopChat } from './chat.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
 const HTML = path.join(ROOT, 'viewer', 'index.html');
-const IGNORE = /(\.tmp-\d+$|\.lock$|\.DS_Store$|events\.jsonl$|\.session\.json$)/;
+export const VERSION = (() => { try { return JSON.parse(readText(path.join(ROOT, 'package.json'))).version; } catch { return ''; } })();
+const IGNORE = /(\.tmp-\d+$|\.lock$|\.DS_Store$|events\.jsonl$|\.session\.json$|\.chat\.json$|chat\.jsonl$)/;
 
 // Which role "owns" a file when it has no `author:` front matter.
 const OWNER = [
@@ -165,7 +167,7 @@ export function startServer(port = DEFAULT_PORT) {
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
         return res.end(readText(HTML));
       }
-      if (url.pathname === '/api/ping') return json(res, 200, { ok: true, app: 'open-company', root: ROOT });
+      if (url.pathname === '/api/ping') return json(res, 200, { ok: true, app: 'open-company', root: ROOT, version: VERSION });
       if (url.pathname === '/api/state') return json(res, 200, snapshot());
       if (url.pathname === '/api/file') {
         const p = path.resolve(ROOT, url.searchParams.get('path') || '');
@@ -178,6 +180,31 @@ export function startServer(port = DEFAULT_PORT) {
         clients.add(res);
         req.on('close', () => clients.delete(res));
         return;
+      }
+      if (url.pathname.startsWith('/api/chat')) {
+        let session = {};
+        try { session = JSON.parse(readText(P.session, '{}')); } catch {}
+        if (url.pathname === '/api/chat' && req.method === 'GET') return json(res, 200, { ...chatInfo(), demo: !!session.demo });
+        if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });
+        if (!String(req.headers['content-type'] || '').includes('application/json')) return json(res, 415, { error: 'json only' });
+        if (session.demo) return json(res, 403, { error: 'The chat is off in demo mode: nothing here is real. Launch your own company with ./start.' });
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const data = JSON.parse(body || '{}');
+        try {
+          if (url.pathname === '/api/chat/engine') { setEngine(data.engine); return json(res, 200, { ok: true }); }
+          if (url.pathname === '/api/chat/new') { newConversation(); return json(res, 200, { ok: true }); }
+          if (url.pathname === '/api/chat/stop') return json(res, 200, { stopped: stopChat() });
+          if (url.pathname === '/api/chat') {
+            res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' });
+            sendChat(data.message, ev => { res.write(JSON.stringify(ev) + '\n'); if (ev.type === 'done') res.end(); });
+            return;
+          }
+        } catch (e) {
+          if (res.headersSent) { res.write(JSON.stringify({ type: 'error', text: e.message }) + '\n'); res.end(JSON.stringify({ type: 'done' }) + '\n'); return; }
+          return json(res, 409, { error: e.message });
+        }
+        return json(res, 404, { error: 'not found' });
       }
       const doc = /^\/finance\/([qi]-[a-z0-9-]+)\.html$/.exec(url.pathname);
       if (doc && req.method === 'GET') {

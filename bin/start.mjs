@@ -2,7 +2,9 @@
 // One command to open the company: prepares the workspace, opens the live office in the browser,
 // then launches the AI tool you already use (logged in with your own subscription) in this folder.
 //
-// Usage: ./start [claude|codex|opencode|agy] [--viewer-only] [--demo] [--doctor] [--no-open] [--port 4747]
+// Default: the live office opens in your browser and you talk to the Director in its Chat tab.
+// --terminal: the AI tool runs in this terminal instead (the page still shows everything).
+// Usage: ./start [claude|codex|opencode|agy] [--terminal] [--viewer-only] [--demo] [--doctor] [--no-open] [--port 4747]
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline/promises';
@@ -101,7 +103,20 @@ async function main() {
   for (const f of fs.existsSync(tmp) ? fs.readdirSync(tmp) : []) if (f !== '.gitkeep') fs.rmSync(path.join(tmp, f), { recursive: true, force: true });
 
   let engine = null;
-  if (!a['viewer-only']) {
+  const web = !a.terminal && !a['viewer-only'];
+  if (web) {
+    // Browser mode: no question here, the AI can be switched in the Chat tab.
+    const installed = Object.keys(ENGINES).filter(k => k !== 'agy' && which(ENGINES[k].bin));
+    const saved = readText(path.join(WS, '.engine')).trim();
+    if (a._[0] && !installed.includes(a._[0])) { console.error(`\n${a._[0]} is not installed or has no chat support yet.\n`); process.exit(1); }
+    engine = a._[0] || (installed.includes(saved) ? saved : installed[0]) || null;
+    if (!engine) {
+      console.log(c.b('\nNo supported AI tool found on this computer. Install one of these, log in once in a terminal, then run ./start again:\n'));
+      for (const k of ['claude', 'codex', 'opencode']) console.log(`  ${ENGINES[k].name.padEnd(42)} ${ENGINES[k].install}`);
+      console.log(c.d('\nOr see the demo with: ./start --demo\n'));
+      process.exit(1);
+    }
+  } else if (!a['viewer-only']) {
     try { engine = await pickEngine(a._[0]); } catch (e) { console.error(`\n${e.message}\n`); process.exit(1); }
     if (!engine) {
       console.log(c.b('\nNo supported AI tool found on this computer. Install one of these, then run ./start again:\n'));
@@ -113,11 +128,29 @@ async function main() {
 
   // Live office: reuse it if it already runs, otherwise serve it from this process.
   let server = null;
-  if (!(await ping())) {
+  const running = await ping();
+  const current = (() => { try { return JSON.parse(readText(path.join(ROOT, 'package.json'))).version; } catch { return ''; } })();
+  if (running && running.version !== current) {
+    console.error(`\nAn older live office (version ${running.version || 'unknown'}) is still running on port ${port}.\nClose its window (or the terminal where it runs), then run ./start again. Or use another port: ./start --port 4848\n`);
+    process.exit(1);
+  }
+  if (!running) {
     try { server = await startServer(port); } catch (e) {
       console.error(e.code === 'EADDRINUSE' ? `Port ${port} is used by another program. Try: ./start --port 4848` : e.message);
       process.exit(1);
     }
+  }
+  if (web) {
+    if (engine === 'claude') writeClaudeLocalSettings();
+    writeText(path.join(WS, '.engine'), engine);
+    writeText(path.join(WS, '.chat.json'), JSON.stringify({ ...(() => { try { return JSON.parse(readText(path.join(WS, '.chat.json'), '{}')); } catch { return {}; } })(), engine }, null, 2));
+    writeText(P.session, JSON.stringify({ engine, started: now(), web: true }));
+    logEvent('director', 'system', `Company opened in the browser with ${ENGINES[engine].name}`);
+    if (!a['no-open']) openBrowser(`${url}/#chat`);
+    console.log(`\n${c.g('●')} Your company is open: ${c.b(`${url}/#chat`)}`);
+    console.log(`${c.g('●')} Talk to the Director in the Chat tab (AI: ${ENGINES[engine].name}, switch it in the page).`);
+    console.log(c.d('  Keep this window open while you work. Ctrl+C to close the company.\n'));
+    return;
   }
   if (!a['no-open']) openBrowser(url);
 

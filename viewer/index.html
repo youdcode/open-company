@@ -112,6 +112,22 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .md table{margin:10px 0;font-size:13px}.md th,.md td{border:1px solid var(--line)}
 .meta{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:6px}
 .meta dt{color:var(--muted)}.meta dd{margin:0;overflow-wrap:anywhere}
+.chat{display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px}
+.chat-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chat-bar select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.chat-log{flex:1;overflow:auto;padding:18px 18px 8px;display:flex;flex-direction:column;gap:14px}
+.bub{max-width:78%;padding:10px 14px;border-radius:14px;line-height:1.5;overflow-wrap:anywhere}
+.bub.you{align-self:flex-end;background:var(--ink);color:var(--bg);border-bottom-right-radius:4px;white-space:pre-wrap}
+.bub.dir{align-self:flex-start;background:var(--soft);border-bottom-left-radius:4px}
+.bub.dir p{margin:.3em 0}.bub.dir ul,.bub.dir ol{margin:.3em 0;padding-left:1.2em}.bub.dir table{font-size:13px}
+.bub.sys{align-self:center;background:none;color:var(--muted);font-size:12px;padding:2px}
+.who-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:4px}.who-line .av{width:20px;height:20px;border-radius:6px;font-size:9px}
+.tool{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:2px 0}.tool::before{content:"› "}
+.err{color:var(--hot);font-size:13px;margin-top:4px}
+.thinking{color:var(--muted);font-size:13px}.thinking::after{content:"…";animation:blink 1.2s infinite}
+.composer{display:flex;gap:10px;padding:12px 14px;border-top:1px solid var(--line);align-items:flex-end}
+.composer textarea{flex:1;font:inherit;resize:none;min-height:44px;max-height:180px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:auto 0}.sugg button{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:7px 12px;border-radius:999px;font-size:13px}
 @media (max-width:1100px){.roles{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
   nav{flex-direction:row;overflow:auto}nav a{white-space:nowrap}.engine{display:none}main{padding:16px}.kpis{grid-template-columns:repeat(2,1fr)}
@@ -124,6 +140,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
     <div class="brand"><div class="mark"><i></i><i></i><i></i><i></i></div><div><b id="co">Your company</b><small>Live office</small></div></div>
     <nav id="nav">
       <a href="#office">Office <span class="n" id="n-office"></span></a>
+      <a href="#chat">Chat <span class="n" id="n-chat"></span></a>
       <a href="#pipeline">Pipeline <span class="n" id="n-pipeline"></span></a>
       <a href="#outreach">Outreach <span class="n" id="n-outreach"></span></a>
       <a href="#finance">Finance <span class="n" id="n-finance"></span></a>
@@ -224,7 +241,7 @@ function roleStatus(id) {
 function setupBanner() {
   if (S.session.demo) return `<div class="banner"><b>Demo mode.</b> A fictional company and fictional leads, replayed by a script. No AI is running and nothing is real. Launch your own company with <code>./start</code>.</div>`;
   if (!S.initialized) return `<div class="banner">The workspace does not exist yet. Launch the company with <code>./start</code>.</div>`;
-  if (S.company.setup !== 'done') return `<div class="banner">Your company is not set up yet. In your AI's terminal, type <code>setup</code>: it will interview you for a few minutes.</div>`;
+  if (S.company.setup !== 'done') return `<div class="banner">Your company is not set up yet. Open the <a href="#chat">Chat</a> and click <code>setup</code>: the Director will interview you for a few minutes.</div>`;
   return '';
 }
 function kpis() {
@@ -250,7 +267,8 @@ function office(fresh) {
   const director = S.roles.find(r => r.id === 'director');
   const team = S.roles.filter(r => r.id !== 'director');
   const evs = S.events.slice().reverse().slice(0, 80);
-  return `${setupBanner()}${kpis()}
+  const talk = S.session.demo ? '' : `<div style="display:flex;justify-content:flex-end;margin:-8px 0 14px"><a class="btn primary" href="#chat">Talk to the Director</a></div>`;
+  return `${setupBanner()}${talk}${kpis()}
   <div class="grid2">
     <div class="card pad"><h2>Organization</h2>
       <div class="org">${director ? `<div class="lead-row"><div style="width:220px">${roleCard(director)}</div></div><div class="stem"></div><div class="rail hide-sm"></div>` : ''}
@@ -285,6 +303,85 @@ function outreach() {
   : `<div class="card empty">${outFilter === 'draft' ? 'No draft waiting. Once leads are qualified, type <code>draft</code> in your AI\'s terminal.' : 'Nothing here.'}</div>`}
   <p class="muted small">Nothing is ever sent from here. Approved messages are exported to a CSV (<code>node tools/export.mjs</code>) for the tool you already use.</p>`;
 }
+// ---------- chat with the Director ----------
+let chat = { info: null, busy: false };
+function chatView() {
+  return `<div class="card chat"><div class="chat-bar"><span class="muted small">Talking to the Director with</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
+    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" onclick="chatNew()">New conversation</button></div>
+    <div class="chat-log" id="chat-log"></div>
+    <div class="composer"><textarea id="chat-input" rows="1" placeholder="Write to the Director… (Enter to send, Shift+Enter for a new line)"></textarea>
+    <button class="btn primary" id="chat-send" onclick="chatSend()">Send</button><button class="btn" id="chat-stop" style="display:none" onclick="chatStop()">Stop</button></div></div>
+  <p class="muted small">Each message runs your AI tool in this folder with your own login. The Director can research, write and update files in <code>workspace/</code>; it never sends anything.</p>`;
+}
+function bubble(from, html) {
+  const log = $('#chat-log'); if (!log) return null;
+  const d = document.createElement('div');
+  d.className = `bub ${from === 'you' ? 'you' : from === 'system' ? 'sys' : 'dir'}`;
+  d.innerHTML = from === 'director' ? `<div class="who-line">${av('director')}Director</div>${html}` : html;
+  log.querySelector('.sugg')?.remove();
+  log.appendChild(d); log.scrollTop = log.scrollHeight;
+  return d;
+}
+function chatSuggestions() {
+  const setup = S && S.company.setup !== 'done';
+  const items = setup ? ['setup', 'What can you do for me?'] : ['status', 'What should I do today?', 'prospect 5', 'qualify', 'draft', 'followups'];
+  $('#chat-log').innerHTML = `<div class="sugg">${items.map(t => `<button onclick="chatSend(${arg(t)})">${esc(t)}</button>`).join('')}</div>`;
+}
+async function chatInit() {
+  const r = await fetch('/api/chat'); chat.info = await r.json();
+  const sel = $('#chat-engine'); if (!sel) return;
+  sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || '<option>no AI tool found</option>';
+  const log = $('#chat-log'); log.innerHTML = '';
+  if (chat.info.demo) { bubble('system', 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.'); $('#chat-input').disabled = true; $('#chat-send').disabled = true; return; }
+  const hist = chat.info.history.slice(-60);
+  if (!hist.length) chatSuggestions();
+  for (const m of hist) bubble(m.from, m.from === 'director' ? md(m.text) : esc(m.text));
+  setBusy(chat.info.busy);
+  const ta = $('#chat-input');
+  ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } };
+  ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(180, ta.scrollHeight) + 'px'; };
+  ta.focus();
+}
+function setBusy(b) {
+  chat.busy = b;
+  if (!$('#chat-send')) return;
+  $('#chat-send').style.display = b ? 'none' : ''; $('#chat-stop').style.display = b ? '' : 'none';
+  $('#chat-status').textContent = b ? 'working… (you can watch the Office tab)' : '';
+  $('#n-chat').textContent = b ? '●' : '';
+}
+async function chatSend(preset) {
+  if (chat.busy) return;
+  const ta = $('#chat-input');
+  const text = (preset || ta.value).trim(); if (!text) return;
+  ta.value = ''; ta.style.height = 'auto';
+  bubble('you', esc(text));
+  const b = bubble('director', '<div class="body"></div><div class="thinking">Working</div>');
+  const body = b.querySelector('.body'), think = b.querySelector('.thinking');
+  setBusy(true);
+  try {
+    const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text }) });
+    if (!r.ok || !r.body) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'The Director could not start.'); }
+    const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === 'tool') body.insertAdjacentHTML('beforeend', `<div class="tool">${esc(ev.text)}</div>`);
+        if (ev.type === 'text') body.insertAdjacentHTML('beforeend', `<div class="md">${md(ev.text)}</div>`);
+        if (ev.type === 'error') body.insertAdjacentHTML('beforeend', `<div class="err">${esc(ev.text)}</div>`);
+        const log = $('#chat-log'); if (log) log.scrollTop = log.scrollHeight;
+      }
+    }
+  } catch (e) { body.insertAdjacentHTML('beforeend', `<div class="err">${esc(e.message)}</div>`); }
+  think.remove(); setBusy(false); $('#chat-input')?.focus();
+}
+async function chatStop() { await fetch('/api/chat/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); }
+async function chatEngine(id) { await fetch('/api/chat/engine', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ engine: id }) }); }
+async function chatNew() { if (chat.busy) return; await fetch('/api/chat/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); chatInit(); }
+
 const money = (x, c) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: c || 'EUR' }).format(x); } catch { return `${x} ${c}`; } };
 let armed = '';
 function finance() {
@@ -333,7 +430,7 @@ function files() {
     : '<div class="empty">No files yet.</div>'}</div>`;
 }
 
-const VIEWS = { office: ['Office', 'Who is doing what, right now', office], pipeline: ['Pipeline', 'Every lead is sourced. Scores are computed by a script, not guessed.', pipeline],
+const VIEWS = { office: ['Office', 'Who is doing what, right now', office], chat: ['Chat', 'Talk to the Director: it runs the team for you', chatView], pipeline: ['Pipeline', 'Every lead is sourced. Scores are computed by a script, not guessed.', pipeline],
   outreach: ['Outreach', 'Messages written by the team, waiting for your call', outreach],
   finance: ['Finance', 'Quotes and invoices: the team drafts, you issue', finance], board: ['Board', 'Tasks across the company', board],
   messages: ['Handoffs', 'How the roles pass work to each other', messages], files: ['Files', 'Everything the company has produced', files] };
@@ -348,10 +445,12 @@ function render(fresh = []) {
   $('#n-finance').textContent = (S.finance || []).filter(d => d.status === 'draft').length || '';
   $('#n-board').textContent = (S.board.Todo.length + S.board.Doing.length) || ''; $('#n-messages').textContent = S.messages.length || ''; $('#n-files').textContent = S.files.length || '';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + view));
+  if (view === 'chat' && $('#chat-log')) return; // the conversation stays on screen while the office updates
   const [t, sub, fn] = VIEWS[view];
   const scroll = document.querySelector('.feed')?.scrollTop || 0;
   $('#main').innerHTML = `<header class="top"><div><h1>${t}</h1><div class="sub">${sub}</div></div></header>${fn(fresh.length > 0)}`;
   const feed = document.querySelector('.feed'); if (feed) feed.scrollTop = scroll;
+  if (view === 'chat') chatInit();
 }
 
 // ---------- actions ----------
