@@ -1,0 +1,18 @@
+{
+  "description": "Opens the live office page when a Codex session starts in this folder.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node viewer/ensure.mjs --engine codex",
+            "statusMessage": "Opening the live office",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

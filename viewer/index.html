@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Office</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316181d'/><rect x='8' y='8' width='7' height='7' rx='2' fill='%23fff'/><rect x='17' y='8' width='7' height='7' rx='2' fill='%23fff' opacity='.55'/><rect x='8' y='17' width='7' height='7' rx='2' fill='%23fff' opacity='.55'/><rect x='17' y='17' width='7' height='7' rx='2' fill='%234ade80'/></svg>">
+<style>
+:root{
+  --bg:#f6f6f3;--panel:#fff;--ink:#15171b;--ink-2:#3b3f47;--muted:#737883;--line:#e6e4de;--soft:#efeee9;
+  --accent:#1f5eff;--accent-soft:#e8eeff;--ok:#15803d;--ok-soft:#e3f4e8;--warn:#b45309;--warn-soft:#fdf0dc;
+  --hot:#c2410c;--hot-soft:#fde8dc;--cold:#64748b;--cold-soft:#eef1f5;--shadow:0 1px 2px rgba(20,20,20,.04),0 4px 16px rgba(20,20,20,.04);
+  --r:12px;--font:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0d0e11;--panel:#15171b;--ink:#e9ebef;--ink-2:#c3c7cf;--muted:#8b919c;--line:#262930;--soft:#1c1f24;
+  --accent:#6b93ff;--accent-soft:#1b2440;--ok:#4ade80;--ok-soft:#14291c;--warn:#fbbf24;--warn-soft:#2d2412;
+  --hot:#fb923c;--hot-soft:#2e1d12;--cold:#94a3b8;--cold-soft:#1d2229;--shadow:none}}
+:root[data-theme=dark]{--bg:#0d0e11;--panel:#15171b;--ink:#e9ebef;--ink-2:#c3c7cf;--muted:#8b919c;--line:#262930;--soft:#1c1f24;
+  --accent:#6b93ff;--accent-soft:#1b2440;--ok:#4ade80;--ok-soft:#14291c;--warn:#fbbf24;--warn-soft:#2d2412;
+  --hot:#fb923c;--hot-soft:#2e1d12;--cold:#94a3b8;--cold-soft:#1d2229;--shadow:none}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button{font:inherit;cursor:pointer}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+aside{border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--ink);display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:6px}
+.mark i{border-radius:2px;background:var(--bg)}.mark i:nth-child(2),.mark i:nth-child(3){opacity:.55}.mark i:nth-child(4){background:#4ade80}
+.brand b{font-size:15px;letter-spacing:-.01em}.brand small{display:block;color:var(--muted);font-size:12px;line-height:1.2}
+nav{display:flex;flex-direction:column;gap:2px}
+nav a{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;color:var(--ink-2);font-weight:500}
+nav a:hover{background:var(--soft);text-decoration:none}nav a.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow);outline:1px solid var(--line)}
+nav .n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.engine{margin-top:auto;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font-size:12px;color:var(--muted)}
+.engine b{color:var(--ink);display:block;font-size:13px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.live.on .dot{background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.5);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+main{padding:24px 32px 64px;min-width:0}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+h1{font-size:22px;letter-spacing:-.02em;margin:0}h2{font-size:15px;margin:0 0 12px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin-top:2px}
+.banner{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:var(--r);background:var(--accent-soft);color:var(--ink);margin-bottom:20px;border:1px solid transparent}
+.banner code{background:var(--panel);padding:2px 8px;border-radius:6px;font-family:var(--mono);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi span{color:var(--muted);font-size:12px}.kpi b{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.pad{padding:16px}
+.org{display:flex;flex-direction:column;align-items:center;gap:0}
+.org .lead-row{display:flex;justify-content:center;width:100%}
+.org .stem{width:1px;height:18px;background:var(--line)}
+.org .rail{height:1px;background:var(--line);width:calc(100% - 180px)}
+.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;width:100%;margin-top:18px}
+.role{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow);transition:border-color .3s,transform .3s;min-width:0}
+.role.work{border-color:color-mix(in srgb,var(--c) 55%,var(--line))}
+.role .who{display:flex;align-items:center;gap:10px;min-width:0}
+.av{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-weight:650;font-size:12px;color:#fff;background:var(--c);flex:none;letter-spacing:.02em}
+.role .t{font-weight:600;line-height:1.25;overflow-wrap:anywhere}.role .d{color:var(--muted);font-size:12px}
+.role .last{font-size:12px;color:var(--ink-2);min-height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.work{background:var(--ok-soft);color:var(--ok)}.pill.work::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.pill.hot{background:var(--hot-soft);color:var(--hot)}.pill.warm{background:var(--warn-soft);color:var(--warn)}.pill.cold{background:var(--cold-soft);color:var(--cold)}
+.pill.approved,.pill.won,.pill.meeting{background:var(--ok-soft);color:var(--ok)}.pill.draft,.pill.drafted{background:var(--accent-soft);color:var(--accent)}
+.pill.rejected,.pill.lost,.pill.do_not_contact{background:var(--hot-soft);color:var(--hot)}
+.feed{max-height:calc(100vh - 150px);overflow:auto}
+.ev{display:flex;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}.ev .av{width:26px;height:26px;border-radius:7px;font-size:10.5px}
+.ev .m{min-width:0}.ev .h{font-size:12px;color:var(--muted)}.ev .h b{color:var(--ink);font-weight:600;margin-right:6px}
+.ev .x{color:var(--ink-2);overflow-wrap:anywhere}.ev .f{font-family:var(--mono);font-size:11.5px;color:var(--muted);cursor:pointer}
+.ev.new{animation:flash 1.6s ease-out}@keyframes flash{from{background:var(--accent-soft)}to{background:transparent}}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--muted);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:4px}.chip{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--soft);color:var(--ink-2);white-space:nowrap}
+.muted{color:var(--muted)}.small{font-size:12px}
+.filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.filters button{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:5px 12px;border-radius:999px;font-size:12.5px}
+.filters button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.drafts{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.draft{display:flex;flex-direction:column}
+.draft .hd{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.draft .subj{font-weight:600;margin-top:6px}
+.draft .body{padding:12px 16px;white-space:pre-wrap;color:var(--ink-2);font-size:13.5px;flex:1;max-height:260px;overflow:auto}
+.draft .ft{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:8px;font-weight:600;font-size:13px}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn:disabled{opacity:.5;cursor:default}
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.col{background:var(--soft);border-radius:var(--r);padding:10px;min-height:160px}
+.col h3{font-size:12.5px;margin:2px 4px 10px;display:flex;justify-content:space-between;color:var(--ink-2)}
+.task{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;box-shadow:var(--shadow)}
+.task .o{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--muted)}.task .o .av{width:18px;height:18px;border-radius:5px;font-size:9px}
+.msg{padding:14px 16px;border-top:1px solid var(--line)}.msg:first-child{border-top:0}
+.msg .route{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}.msg .route .av{width:22px;height:22px;border-radius:6px;font-size:9.5px}
+.msg .s{font-weight:600;margin:6px 0 2px}
+.files .fr{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--line);cursor:pointer}
+.files .fr:first-child{border-top:0}.files .fr:hover{background:var(--soft)}.files .p{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}.empty code{font-family:var(--mono);background:var(--soft);padding:2px 8px;border-radius:6px;color:var(--ink)}
+.drawer{position:fixed;inset:0 0 0 auto;width:min(640px,100vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .25s ease;z-index:10;display:flex;flex-direction:column}
+.drawer.open{transform:none}.drawer .dh{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);gap:12px}
+.drawer .dh span{font-family:var(--mono);font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}.drawer .db{padding:8px 24px 40px;overflow:auto}
+.md h1{font-size:20px;margin:18px 0 8px}.md h2{font-size:16px;margin:18px 0 6px}.md h3{font-size:14px;margin:14px 0 4px}
+.md p,.md li{color:var(--ink-2)}.md code{font-family:var(--mono);font-size:12.5px;background:var(--soft);padding:1px 5px;border-radius:5px}
+.md pre{background:var(--soft);padding:12px;border-radius:8px;overflow:auto}.md pre code{background:none;padding:0}
+.md blockquote{margin:8px 0;padding:4px 14px;border-left:3px solid var(--line);color:var(--muted)}
+.md table{margin:10px 0;font-size:13px}.md th,.md td{border:1px solid var(--line)}
+.meta{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:6px}
+.meta dt{color:var(--muted)}.meta dd{margin:0;overflow-wrap:anywhere}
+@media (max-width:1100px){.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
+  nav{flex-direction:row;overflow:auto}nav a{white-space:nowrap}.engine{display:none}main{padding:16px}.kpis{grid-template-columns:repeat(2,1fr)}
+  .drafts{grid-template-columns:1fr}.kanban{grid-template-columns:1fr}.hide-sm{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><div class="mark"><i></i><i></i><i></i><i></i></div><div><b id="co">Your company</b><small>Live office</small></div></div>
+    <nav id="nav">
+      <a href="#office">Office <span class="n" id="n-office"></span></a>
+      <a href="#pipeline">Pipeline <span class="n" id="n-pipeline"></span></a>
+      <a href="#outreach">Outreach <span class="n" id="n-outreach"></span></a>
+      <a href="#board">Board <span class="n" id="n-board"></span></a>
+      <a href="#messages">Handoffs <span class="n" id="n-messages"></span></a>
+      <a href="#files">Files <span class="n" id="n-files"></span></a>
+    </nav>
+    <div class="engine"><span class="live" id="live"><span class="dot"></span><span id="live-t">Connecting…</span></span><b id="engine">No AI connected</b><span id="since"></span></div>
+  </aside>
+  <main id="main"></main>
+</div>
+<div class="drawer" id="drawer"><div class="dh"><span id="d-path"></span><button class="btn" onclick="closeDrawer()">Close</button></div><div class="db md" id="d-body"></div></div>
+<script>
+const $ = s => document.querySelector(s);
+let S = null, view = 'office', seen = new Set(), pipeFilter = 'all', outFilter = 'draft';
+const ENGINES = { claude: 'Claude Code', codex: 'Codex (ChatGPT)', opencode: 'OpenCode', agy: 'Antigravity (Gemini)' };
+const PALETTE = ['#1f5eff','#0f9f6e','#c2410c','#7c3aed','#db2777','#0891b2','#ca8a04','#4b5563','#16a34a','#e11d48'];
+
+const arg = v => esc(JSON.stringify(String(v ?? '')));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const hash = s => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+const color = r => r === 'you' || r === 'director' ? 'var(--ink)' : PALETTE[hash(r) % PALETTE.length];
+const initials = r => r === 'you' ? 'YOU' : String(r).split(/[-_ ]/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+const av = r => `<span class="av" style="--c:${color(r)};background:${color(r)}${r === 'you' || r === 'director' ? ';color:var(--bg)' : ''}">${esc(initials(r))}</span>`;
+const ago = t => { const s = Math.max(0, (Date.now() - (typeof t === 'number' ? t : Date.parse(t))) / 1000);
+  return s < 45 ? 'just now' : s < 3600 ? `${Math.round(s / 60)}m ago` : s < 86400 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`; };
+const today = () => new Date().toISOString().slice(0, 10);
+const roleTitle = id => (S.roles.find(r => r.id === id) || {}).title || (id === 'you' ? 'You' : id);
+
+// ---------- minimal, safe markdown ----------
+function inline(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+function md(src) {
+  src = String(src).replace(/^---\n[\s\S]*?\n---\n?/, '');
+  const out = [], lines = src.split('\n');
+  let i = 0;
+  while (i < lines.length) {
+    let l = lines[i];
+    if (/^```/.test(l)) { const buf = []; i++; while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]); i++; out.push(`<pre><code>${esc(buf.join('\n'))}</code></pre>`); continue; }
+    let h = /^(#{1,4})\s+(.*)/.exec(l); if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+    if (/^\s*(---|\*\*\*)\s*$/.test(l)) { out.push('<hr>'); i++; continue; }
+    if (/^>\s?/.test(l)) { const b = []; while (i < lines.length && /^>\s?/.test(lines[i])) b.push(lines[i++].replace(/^>\s?/, '')); out.push(`<blockquote>${inline(b.join(' '))}</blockquote>`); continue; }
+    if (/^\s*\|/.test(l) && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1] || '')) {
+      const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push(`<table><tr>${head.map(c => `<th>${inline(c)}</th>`).join('')}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</table>`); continue;
+    }
+    if (/^\s*([-*]|\d+\.)\s+/.test(l)) {
+      const ordered = /^\s*\d+\./.test(l), items = [];
+      while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) items.push(lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, '').replace(/^\[( |x)\]\s*/, (m, x) => x === 'x' ? '✓ ' : '☐ '));
+      out.push(`<${ordered ? 'ol' : 'ul'}>${items.map(t => `<li>${inline(t)}</li>`).join('')}</${ordered ? 'ol' : 'ul'}>`); continue;
+    }
+    if (!l.trim()) { i++; continue; }
+    const p = []; while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|```|>|\s*([-*]|\d+\.)\s|\s*\|)/.test(lines[i])) p.push(lines[i++]);
+    if (!p.length) p.push(lines[i++]);
+    out.push(`<p>${inline(p.join(' '))}</p>`);
+  }
+  return out.join('\n');
+}
+function parseCSV(text) {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { f += '"'; i++; } else if (c === '"') q = false; else f += c; continue; }
+    if (c === '"') q = true; else if (c === ',') { row.push(f); f = ''; } else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; } else if (c !== '\r') f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+function csvTable(text) {
+  const rows = parseCSV(text.trim());
+  if (!rows.length) return '';
+  return `<table><tr>${rows[0].map(c => `<th>${esc(c)}</th>`).join('')}</tr>${rows.slice(1, 200).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`;
+}
+
+// ---------- data ----------
+async function load(fresh = []) {
+  const r = await fetch('/api/state', { cache: 'no-store' });
+  S = await r.json();
+  render(fresh);
+}
+function roleStatus(id) {
+  const evs = S.events.filter(e => e.role === id && e.type !== 'system');
+  const last = evs[evs.length - 1];
+  const working = last && Date.now() - Date.parse(last.ts) < 3 * 60 * 1000;
+  return { last, working };
+}
+
+// ---------- views ----------
+function setupBanner() {
+  if (!S.initialized) return `<div class="banner">The workspace does not exist yet. Launch the company with <code>./start</code>.</div>`;
+  if (S.company.setup !== 'done') return `<div class="banner">Your company is not set up yet. In your AI's terminal, type <code>setup</code>: it will interview you for a few minutes.</div>`;
+  return '';
+}
+function kpis() {
+  const L = S.leads, due = L.filter(l => l.next_action_date && l.next_action_date <= today() && !['won','lost','do_not_contact'].includes(l.status)).length;
+  const waiting = S.drafts.filter(d => d.status === 'draft').length;
+  const k = [['Leads', L.length], ['Hot leads', L.filter(l => l.tier === 'hot').length], ['Drafts to review', waiting], ['Follow-ups due', due]];
+  return `<div class="kpis">${k.map(([a, b]) => `<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>`;
+}
+function roleCard(r) {
+  const st = roleStatus(r.id);
+  return `<div class="role ${st.working ? 'work' : ''}" style="--c:${color(r.id)}">
+    <div class="who">${av(r.id)}<div style="min-width:0"><div class="t">${esc(r.title)}</div><div class="d">${esc(r.department)}</div></div></div>
+    <div class="last">${st.last ? esc(st.last.text) : '<span class="muted">Waiting for work</span>'}</div>
+    <div>${st.working ? '<span class="pill work">Working</span>' : `<span class="pill">${st.last ? 'Idle · ' + ago(st.last.ts) : 'Idle'}</span>`}</div></div>`;
+}
+function feedItem(e, fresh) {
+  const key = e.ts + e.role + e.text;
+  const isNew = fresh && !seen.has(key); seen.add(key);
+  return `<div class="ev ${isNew ? 'new' : ''}">${av(e.role)}<div class="m"><div class="h"><b>${esc(roleTitle(e.role))}</b>${ago(e.ts)}</div>
+    <div class="x">${esc(e.text)}</div>${e.path ? `<div class="f" onclick="openFile(${arg(e.path)})">${esc(e.path.replace(/^workspace\//, ''))}</div>` : ''}</div></div>`;
+}
+function office(fresh) {
+  const director = S.roles.find(r => r.id === 'director');
+  const team = S.roles.filter(r => r.id !== 'director');
+  const evs = S.events.slice().reverse().slice(0, 80);
+  return `${setupBanner()}${kpis()}
+  <div class="grid2">
+    <div class="card pad"><h2>Organization</h2>
+      <div class="org">${director ? `<div class="lead-row"><div style="width:220px">${roleCard(director)}</div></div><div class="stem"></div><div class="rail hide-sm"></div>` : ''}
+      <div class="roles">${team.map(roleCard).join('')}</div></div></div>
+    <div class="card"><div class="pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Live activity</h2><span class="muted small">${S.events.length} events</span></div>
+      <div class="feed">${evs.length ? evs.map(e => feedItem(e, fresh)).join('') : '<div class="empty">Nothing yet. Activity appears here the second an agent does something.</div>'}</div></div>
+  </div>`;
+}
+function pipeline() {
+  let L = S.leads.slice().sort((a, b) => (+b.score || 0) - (+a.score || 0));
+  if (pipeFilter === 'hot' || pipeFilter === 'warm') L = L.filter(l => l.tier === pipeFilter);
+  if (pipeFilter === 'due') L = L.filter(l => l.next_action_date && l.next_action_date <= today());
+  const f = [['all', 'All'], ['hot', 'Hot'], ['warm', 'Warm'], ['due', 'Due today']];
+  return `<div class="filters">${f.map(([k, t]) => `<button class="${pipeFilter === k ? 'on' : ''}" onclick="pipeFilter='${k}';render()">${t}</button>`).join('')}</div>
+  <div class="card" style="overflow:auto">${L.length ? `<table><tr><th>Company</th><th class="num">Score</th><th>Tier</th><th>Status</th><th class="hide-sm">Signals</th><th class="hide-sm">Contact</th><th class="hide-sm">Next</th><th class="hide-sm">Sources</th></tr>
+  ${L.map(l => `<tr class="row" onclick="openLead(${arg(l.id)})"><td><b>${esc(l.company)}</b><div class="muted small">${esc([l.city, l.industry, l.employees && l.employees + ' ppl'].filter(Boolean).join(' · '))}</div></td>
+    <td class="num"><b>${esc(l.score || '')}</b></td><td>${l.tier ? `<span class="pill ${esc(l.tier)}">${esc(l.tier)}</span>` : ''}</td><td><span class="pill ${esc(l.status)}">${esc(l.status)}</span></td>
+    <td class="hide-sm"><div class="chips">${String(l.signals || '').split(/;\s*/).filter(Boolean).map(s => `<span class="chip">${esc(s.replace('@', ' · '))}</span>`).join('')}</div></td>
+    <td class="hide-sm small">${esc(l.contact_role || '')}</td><td class="hide-sm small">${esc(l.next_action || '')}${l.next_action_date ? `<div class="muted">${esc(l.next_action_date)}</div>` : ''}</td>
+    <td class="hide-sm small">${(String(l.sources).match(/https?:\/\/\S+/g) || []).length} link(s)</td></tr>`).join('')}</table>`
+  : '<div class="empty">No leads yet. In your AI\'s terminal, type <code>prospect 10</code>.</div>'}</div>`;
+}
+function outreach() {
+  const tabs = [['draft', 'To review'], ['approved', 'Approved'], ['exported', 'Exported'], ['rejected', 'Rejected']];
+  const D = S.drafts.filter(d => d.status === outFilter);
+  return `<div class="filters">${tabs.map(([k, t]) => `<button class="${outFilter === k ? 'on' : ''}" onclick="outFilter='${k}';render()">${t} (${S.drafts.filter(d => d.status === k).length})</button>`).join('')}</div>
+  ${D.length ? `<div class="drafts">${D.map(d => `<div class="card draft"><div class="hd"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(d.company)}</b><span class="pill ${esc(d.status)}">${esc(d.channel || 'email')}</span></div>
+    <div class="muted small">${esc(d.to || '')}</div><div class="subj">${esc(d.subject || '')}</div></div><div class="body">${esc(d.body)}</div>
+    <div class="ft">${d.status === 'draft' ? `<button class="btn primary" onclick="review(${arg(d.id)},'approved',this)">Approve</button><button class="btn" onclick="review(${arg(d.id)},'rejected',this)">Reject</button>`
+      : d.status === 'exported' ? '<span class="muted small">Exported. Send it from your own tool.</span>' : `<button class="btn" onclick="review(${arg(d.id)},'draft',this)">Move back to review</button>`}
+    <span class="muted small" style="margin-left:auto">${esc(roleTitle(d.author || 'sales'))}</span></div></div>`).join('')}</div>`
+  : `<div class="card empty">${outFilter === 'draft' ? 'No draft waiting. Once leads are qualified, type <code>draft</code> in your AI\'s terminal.' : 'Nothing here.'}</div>`}
+  <p class="muted small">Nothing is ever sent from here. Approved messages are exported to a CSV (<code>node tools/export.mjs</code>) for the tool you already use.</p>`;
+}
+function board() {
+  return `<div class="kanban">${['Todo', 'Doing', 'Review', 'Done'].map(c => `<div class="col"><h3>${c}<span>${S.board[c].length}</span></h3>
+    ${S.board[c].map(t => `<div class="task">${esc(t.text)}${t.role ? `<div class="o">${av(t.role)}${esc(roleTitle(t.role))}</div>` : ''}</div>`).join('') || '<div class="muted small" style="padding:4px">Empty</div>'}</div>`).join('')}</div>`;
+}
+function messages() {
+  return `<div class="card">${S.messages.length ? S.messages.map(m => `<div class="msg"><div class="route">${av(m.from)}<b style="color:var(--ink)">${esc(roleTitle(m.from))}</b> → ${av(m.to)}<b style="color:var(--ink)">${esc(roleTitle(m.to))}</b><span style="margin-left:auto">${m.created ? ago(m.created) : ''}</span></div>
+    <div class="s">${esc(m.subject)}</div><div class="x md">${md(m.body)}</div>${m.link ? `<div class="f ev" style="padding:0;border:0"><span class="f" onclick="openFile(${arg(m.link)})">${esc(m.link.replace(/^workspace\//, ''))}</span></div>` : ''}</div>`).join('')
+    : '<div class="empty">When one role hands work to another, the note appears here.</div>'}</div>`;
+}
+function files() {
+  return `<div class="card files">${S.files.length ? S.files.map(f => `<div class="fr" onclick="openFile(${arg(f.path)})"><span class="p">${esc(f.path.replace(/^workspace\//, ''))}</span><span class="muted small" style="white-space:nowrap">${f.author ? esc(roleTitle(f.author)) + ' · ' : ''}${ago(f.mtime)}</span></div>`).join('')
+    : '<div class="empty">No files yet.</div>'}</div>`;
+}
+
+const VIEWS = { office: ['Office', 'Who is doing what, right now', office], pipeline: ['Pipeline', 'Every lead is sourced. Scores are computed by a script, not guessed.', pipeline],
+  outreach: ['Outreach', 'Messages written by the team, waiting for your call', outreach], board: ['Board', 'Tasks across the company', board],
+  messages: ['Handoffs', 'How the roles pass work to each other', messages], files: ['Files', 'Everything the company has produced', files] };
+
+function render(fresh = []) {
+  if (!S) return;
+  const name = S.company.name && S.company.name !== 'Your company' ? S.company.name : 'Your company';
+  $('#co').textContent = name; document.title = `${name} · Live Office`;
+  $('#engine').textContent = S.session.engine ? `Running on ${ENGINES[S.session.engine] || S.session.engine}` : 'No AI connected';
+  $('#since').textContent = S.session.started ? `since ${new Date(S.session.started).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '';
+  $('#n-pipeline').textContent = S.leads.length || ''; $('#n-outreach').textContent = S.drafts.filter(d => d.status === 'draft').length || '';
+  $('#n-board').textContent = (S.board.Todo.length + S.board.Doing.length) || ''; $('#n-messages').textContent = S.messages.length || ''; $('#n-files').textContent = S.files.length || '';
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + view));
+  const [t, sub, fn] = VIEWS[view];
+  const scroll = document.querySelector('.feed')?.scrollTop || 0;
+  $('#main').innerHTML = `<header class="top"><div><h1>${t}</h1><div class="sub">${sub}</div></div></header>${fn(fresh.length > 0)}`;
+  const feed = document.querySelector('.feed'); if (feed) feed.scrollTop = scroll;
+}
+
+// ---------- actions ----------
+async function review(id, status, btn) {
+  btn.disabled = true;
+  const r = await fetch(`/api/drafts/${id}/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) });
+  if (!r.ok) { btn.disabled = false; alert('Could not update this draft.'); }
+  load();
+}
+async function openFile(p) {
+  const r = await fetch(`/api/file?path=${encodeURIComponent(p)}`);
+  if (!r.ok) return;
+  const f = await r.json();
+  $('#d-path').textContent = f.path.replace(/^workspace\//, '');
+  $('#d-body').innerHTML = f.path.endsWith('.csv') ? csvTable(f.content) : f.path.endsWith('.md') ? md(f.content) : `<pre><code>${esc(f.content)}</code></pre>`;
+  $('#drawer').classList.add('open');
+}
+async function openLead(id) {
+  const l = S.leads.find(x => x.id === id); if (!l) return;
+  const fields = [['Website', l.website && `<a href="${esc(/^https?:/.test(l.website) ? l.website : 'https://' + l.website)}" target="_blank" rel="noopener">${esc(l.website)}</a>`], ['Registry id', esc(l.registry_id)],
+    ['Place', esc([l.city, l.country].filter(Boolean).join(', '))], ['Industry', esc(l.industry)], ['Employees', esc(l.employees)],
+    ['Contact', esc([l.contact_name, l.contact_role].filter(Boolean).join(', '))], ['Channel', esc(l.contact_channel)],
+    ['Contact source', (l.contact_source.match(/https?:\/\/\S+/g) || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join('<br>')],
+    ['Score', `${esc(l.score)} <span class="muted">(${esc(l.score_why)})</span>`], ['Status', esc(l.status)], ['Next action', esc([l.next_action, l.next_action_date].filter(Boolean).join(' · '))],
+    ['Sources', (l.sources.match(/https?:\/\/\S+/g) || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join('<br>')]].filter(([, v]) => v);
+  let account = '';
+  const acc = await fetch(`/api/file?path=${encodeURIComponent(`workspace/prospecting/accounts/${id}.md`)}`);
+  if (acc.ok) account = md((await acc.json()).content);
+  $('#d-path').textContent = l.company;
+  $('#d-body').innerHTML = `<dl class="meta">${fields.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${account || '<p class="muted">No account file yet.</p>'}`;
+  $('#drawer').classList.add('open');
+}
+function closeDrawer() { $('#drawer').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// ---------- live ----------
+function route() { view = (location.hash.slice(1) in VIEWS) ? location.hash.slice(1) : 'office'; render(); }
+window.addEventListener('hashchange', route);
+function connect() {
+  const es = new EventSource('/api/stream');
+  es.onopen = () => { $('#live').classList.add('on'); $('#live-t').textContent = 'Live'; };
+  es.onerror = () => { $('#live').classList.remove('on'); $('#live-t').textContent = 'Reconnecting…'; };
+  es.addEventListener('change', e => load(JSON.parse(e.data).changed || []));
+}
+load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); connect(); });
+setInterval(() => { if (view === 'office' && S) render(); }, 30000);
+</script>
+</body>
+</html>

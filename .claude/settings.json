@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(workspace/**)",
+      "Edit(/workspace/**)",
+      "WebSearch",
+      "WebFetch",
+      "Bash(node tools/*)",
+      "Bash(node viewer/*)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(rm -rf*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/viewer/ensure.mjs\" --engine claude",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

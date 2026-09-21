@@ -1,0 +1,10 @@
+# Codex project settings. Codex loads this file once you trust the folder.
+# Agents may write in the workspace; they ask before anything else.
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+# Live web search is needed for prospecting.
+web_search = "live"
+
+[sandbox_workspace_write]
+# tools/registry-fr.mjs calls the public French company registry.
+network_access = true
