@@ -15,7 +15,7 @@ import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
 const HTML = path.join(ROOT, 'viewer', 'index.html');
-const IGNORE = /(\.tmp-\d+$|\.DS_Store$|events\.jsonl$|\.session\.json$)/;
+const IGNORE = /(\.tmp-\d+$|\.lock$|\.DS_Store$|events\.jsonl$|\.session\.json$)/;
 
 // Which role "owns" a file when it has no `author:` front matter.
 const OWNER = [

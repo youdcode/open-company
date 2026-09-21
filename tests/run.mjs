@@ -83,6 +83,26 @@ ok('long handoffs are refused', r.code !== 0);
 const events = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
 ok('every step reached the live feed', events.some(e => e.type === 'lead') && events.some(e => e.type === 'draft') && events.some(e => e.type === 'review') && events.some(e => e.type === 'handoff'));
 
+console.log('several agents at the same time');
+{
+  const { spawn } = await import('node:child_process');
+  const runAsync = (script, argv) => new Promise(res => {
+    const c = spawn(process.execPath, [path.join(ROOT, script), ...argv], { env: process.env, stdio: 'ignore' });
+    c.on('exit', code => res(code));
+  });
+  const codes = await Promise.all(Array.from({ length: 10 }, (_, i) => runAsync('tools/leads.mjs',
+    ['add', '--as', 'researcher', '--json', JSON.stringify({ company: `Parallel Co ${i}`, sources: `https://parallel-${i}.example` })])));
+  const all = leads();
+  ok('10 agents adding leads at once: no row lost', codes.every(c => c === 0) && Array.from({ length: 10 }, (_, i) => all.includes(`Parallel Co ${i},`)).every(Boolean));
+  await Promise.all(Array.from({ length: 8 }, (_, i) => runAsync('tools/board.mjs', ['add', `Parallel task ${i}`, '--role', 'researcher'])));
+  const board = fs.readFileSync(path.join(TMP, 'org', 'board.md'), 'utf8');
+  ok('8 agents adding tasks at once: no task lost', Array.from({ length: 8 }, (_, i) => board.includes(`Parallel task ${i} (@researcher)`)).every(Boolean));
+  ok('no lock file left behind', !fs.readdirSync(path.join(TMP, 'prospecting')).some(f => f.endsWith('.lock')) && !fs.readdirSync(path.join(TMP, 'org')).some(f => f.endsWith('.lock')));
+  // keep the later checks independent of these extra leads
+  const kept = all.split('\n').filter(l => !l.startsWith('parallel-co-')).join('\n');
+  fs.writeFileSync(path.join(TMP, 'prospecting', 'leads.csv'), kept);
+}
+
 console.log('live office');
 const { startServer } = await import('../viewer/server.mjs');
 const port = 47000 + Math.floor(Math.random() * 1000);

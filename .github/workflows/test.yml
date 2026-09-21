@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: End-to-end tests
+        run: npm test
+      - name: Doctor (Unix launcher)
+        if: runner.os != 'Windows'
+        run: ./start --doctor
+      - name: Doctor (Windows launcher)
+        if: runner.os == 'Windows'
+        run: cmd /c start.cmd --doctor
+      - name: Generated adapters are up to date
+        if: runner.os == 'Linux'
+        run: |
+          node tools/sync-adapters.mjs
+          git diff --exit-code

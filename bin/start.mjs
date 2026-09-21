@@ -2,10 +2,11 @@
 // One command to open the company: prepares the workspace, opens the live office in the browser,
 // then launches the AI tool you already use (logged in with your own subscription) in this folder.
 //
-// Usage: ./start [claude|codex|opencode|agy] [--viewer-only] [--demo] [--no-open] [--port 4747]
+// Usage: ./start [claude|codex|opencode|agy] [--viewer-only] [--demo] [--doctor] [--no-open] [--port 4747]
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline/promises';
+import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { ROOT, P, WS, args, logEvent, writeText, readText, now } from '../tools/lib/common.mjs';
 import { init } from '../tools/init.mjs';
@@ -19,7 +20,10 @@ const ENGINES = {
   agy: { bin: 'agy', name: 'Antigravity CLI (Gemini)', args: () => [], hint: 'Type "start" once it opens.', install: 'see https://antigravity.google  (sign in with your Google account)' },
 };
 
-const c = { b: s => `\x1b[1m${s}\x1b[0m`, d: s => `\x1b[2m${s}\x1b[0m`, g: s => `\x1b[32m${s}\x1b[0m` };
+const tty = process.stdout.isTTY && !process.env.NO_COLOR;
+const c = tty
+  ? { b: s => `\x1b[1m${s}\x1b[0m`, d: s => `\x1b[2m${s}\x1b[0m`, g: s => `\x1b[32m${s}\x1b[0m` }
+  : { b: s => s, d: s => s, g: s => s };
 
 function which(bin) {
   const exts = process.platform === 'win32' ? (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';') : [''];
@@ -55,8 +59,32 @@ async function pickEngine(requested) {
   return installed[n - 1] || installed[def - 1];
 }
 
+const portState = port => new Promise(res => {
+  const s = net.createServer().once('error', () => res('busy')).once('listening', () => s.close(() => res('free')));
+  s.listen(port, '127.0.0.1');
+});
+
+// ./start --doctor: checks the setup without launching anything.
+async function doctor(port) {
+  const major = Number(process.versions.node.split('.')[0]);
+  const ok = (good, text) => console.log(`  ${good ? c.g('✓') : '✗'} ${text}`);
+  console.log(c.b('\nOpen Company doctor\n'));
+  ok(major >= 20, `Node.js ${process.versions.node}${major >= 20 ? '' : ' (version 20 or newer is required: https://nodejs.org)'}`);
+  ok(true, `System: ${process.platform} ${process.arch}`);
+  const found = Object.keys(ENGINES).filter(k => which(ENGINES[k].bin));
+  ok(found.length > 0, found.length ? `AI tools found: ${found.map(k => ENGINES[k].name).join(', ')}` : 'No AI tool found yet (./start will tell you how to install one)');
+  const profile = readText(P.company);
+  ok(true, fs.existsSync(WS) ? `Workspace: ${/setup:\s*done/.test(profile) ? 'company set up' : 'created, setup not done yet'}` : 'Workspace: will be created on the first ./start');
+  const st = await portState(port);
+  const ours = st === 'busy' && await ping();
+  ok(st === 'free' || ours, st === 'free' ? `Port ${port} is free for the live office` : ours ? `The live office already runs on port ${port}` : `Port ${port} is used by another program (use --port 4848)`);
+  console.log('');
+  process.exit(major >= 20 ? 0 : 1);
+}
+
 async function main() {
   const a = args();
+  if (a.doctor) return doctor(Number(a.port) || Number(process.env.OPEN_COMPANY_PORT) || 4747);
   if (a.demo) {
     const rest = process.argv.slice(2).filter(x => x !== '--demo');
     const child = spawn(process.execPath, [path.join(ROOT, 'bin', 'demo.mjs'), ...rest], { stdio: 'inherit' });
@@ -105,10 +133,11 @@ async function main() {
   console.log(`\n${c.g('●')} Live office: ${c.b(url)}`);
   console.log(`${c.g('●')} Starting ${c.b(E.name)}${E.hint ? `. ${E.hint}` : ''}\n`);
 
-  const child = spawn(which(E.bin), E.args('start'), {
-    cwd: ROOT, stdio: 'inherit', env: { ...process.env, OPEN_COMPANY_ENGINE: engine },
-    shell: process.platform === 'win32',
-  });
+  const env = { ...process.env, OPEN_COMPANY_ENGINE: engine };
+  // On Windows the tools are .cmd shims that need a shell; a full path with spaces would break it.
+  const child = process.platform === 'win32'
+    ? spawn(E.bin, E.args('start'), { cwd: ROOT, stdio: 'inherit', env, shell: true })
+    : spawn(which(E.bin), E.args('start'), { cwd: ROOT, stdio: 'inherit', env });
   process.on('SIGINT', () => {}); // the AI tool handles Ctrl+C itself
   child.on('exit', code => {
     try {

@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import {
   LEAD_COLUMNS, LEAD_STATUSES, readLeads, writeLeads, slugify, today, logEvent,
-  args, fail, requireWorkspace, P, isMain,
+  args, fail, requireWorkspace, P, isMain, withLock,
 } from './lib/common.mjs';
 
 const URL_RE = /https?:\/\/[^\s;,]+/g;
@@ -54,6 +54,10 @@ function findDuplicate(leads, lead) {
 }
 
 export function addLeads(items, role = 'researcher') {
+  return withLock(P.leads, () => addLeadsUnlocked(items, role));
+}
+
+function addLeadsUnlocked(items, role) {
   const leads = readLeads();
   const report = { added: [], skipped: [], rejected: [] };
   for (const raw of items) {
@@ -77,17 +81,19 @@ export function addLeads(items, role = 'researcher') {
 }
 
 export function updateLead(id, changes, role) {
-  const leads = readLeads();
-  const lead = leads.find(l => l.id === id);
-  if (!lead) fail(`no lead with id "${id}"`);
-  const before = lead.status;
-  Object.assign(lead, normalize(changes), { updated: today() });
-  const errors = validate(lead);
-  if (errors.length) fail(errors.join('\n'));
-  writeLeads(leads);
-  const moved = changes.status && changes.status !== before ? ` (${before} → ${changes.status})` : '';
-  logEvent(role || lead.owner, 'lead', `Updated ${lead.company}${moved}`, P.leads);
-  return lead;
+  return withLock(P.leads, () => {
+    const leads = readLeads();
+    const lead = leads.find(l => l.id === id);
+    if (!lead) throw new Error(`no lead with id "${id}"`);
+    const before = lead.status;
+    Object.assign(lead, normalize(changes), { updated: today() });
+    const errors = validate(lead);
+    if (errors.length) throw new Error(errors.join('\n'));
+    writeLeads(leads);
+    const moved = changes.status && changes.status !== before ? ` (${before} → ${changes.status})` : '';
+    logEvent(role || lead.owner, 'lead', `Updated ${lead.company}${moved}`, P.leads);
+    return lead;
+  });
 }
 
 function printTable(rows) {
@@ -121,7 +127,7 @@ function main() {
     const [id, ...pairs] = rest;
     if (!id || !pairs.length) fail('usage: update <id> key=value [key=value...]');
     const changes = Object.fromEntries(pairs.map(p => { const i = p.indexOf('='); return [p.slice(0, i), p.slice(i + 1)]; }));
-    console.log(JSON.stringify(updateLead(id, changes, role), null, 2));
+    try { console.log(JSON.stringify(updateLead(id, changes, role), null, 2)); } catch (e) { fail(e.message); }
     return;
   }
   if (cmd === 'get') {

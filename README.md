@@ -42,7 +42,8 @@ Approve or Reject at the end.
 
 ## Quick start
 
-You need [Node.js](https://nodejs.org) 18+ and one supported AI tool, installed and logged in.
+You need [Node.js](https://nodejs.org) 20+ and one supported AI tool, installed and logged in.
+Check your setup any time with `./start --doctor`.
 
 ```bash
 git clone https://github.com/youdcode/open-company.git

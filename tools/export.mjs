@@ -5,13 +5,14 @@
 import path from 'node:path';
 import {
   P, readLeads, writeLeads, toCSV, writeText, readText, parseFrontMatter, stringifyFrontMatter,
-  logEvent, requireWorkspace, today, now,
+  logEvent, requireWorkspace, today, now, withLock,
 } from './lib/common.mjs';
 import { listDrafts } from './drafts.mjs';
 
 requireWorkspace();
+withLock(P.leads, () => {
 const approved = listDrafts().filter(d => d.status === 'approved');
-if (!approved.length) { console.log('nothing to export: approve drafts first (local page or tools/drafts.mjs set <id> approved)'); process.exit(0); }
+if (!approved.length) { console.log('nothing to export: approve drafts first (local page or tools/drafts.mjs set <id> approved)'); return; }
 
 const leads = readLeads();
 const rows = approved.map(d => {
@@ -32,3 +33,4 @@ for (const d of approved) {
 writeLeads(leads);
 logEvent('sales', 'export', `Exported ${rows.length} approved message${rows.length > 1 ? 's' : ''} for sending`, file);
 console.log(`${rows.length} messages exported to ${path.relative(process.cwd(), file)}`);
+});

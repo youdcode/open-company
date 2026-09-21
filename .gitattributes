@@ -1,0 +1,6 @@
+# Same line endings on every system (Windows checkouts included).
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.jpg binary
+*.png binary
+*.gif binary

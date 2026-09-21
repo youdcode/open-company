@@ -4,7 +4,7 @@
 // in workspace/prospecting/icp.md (the ```json block under "Scoring").
 //
 // Usage: node tools/score.mjs [--id <lead id>] [--as qualifier]
-import { readLeads, writeLeads, readText, P, logEvent, args, fail, requireWorkspace, isMain } from './lib/common.mjs';
+import { readLeads, writeLeads, readText, P, logEvent, args, fail, requireWorkspace, isMain, withLock } from './lib/common.mjs';
 
 export function loadRules() {
   const md = readText(P.icp);
@@ -57,7 +57,11 @@ export function scoreLead(lead, rules, ref = new Date()) {
   return { score, tier, why: why.join('+') || 'no match' };
 }
 
-export function scoreAll({ id, as = 'researcher', quiet = false } = {}) {
+export function scoreAll(opts = {}) {
+  return withLock(P.leads, () => scoreAllUnlocked(opts));
+}
+
+function scoreAllUnlocked({ id, as = 'researcher', quiet = false } = {}) {
   const rules = loadRules();
   const fitMax = Object.values(rules.fit || {}).reduce((s, f) => s + (f.weight || 0), 0);
   if (!quiet && fitMax >= (rules.threshold?.hot ?? 60))

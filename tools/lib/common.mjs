@@ -1,4 +1,4 @@
-// Shared helpers for every tool and for the viewer. Zero dependencies, Node >= 18.
+// Shared helpers for every tool and for the viewer. Zero dependencies, Node >= 20.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,11 +47,39 @@ export function readText(file, fallback = '') {
   try { return fs.readFileSync(file, 'utf8'); } catch { return fallback; }
 }
 
+const sleepSync = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
 export function writeText(file, content) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.tmp-${process.pid}`;
   fs.writeFileSync(tmp, content);
-  fs.renameSync(tmp, file);
+  // Windows can refuse a rename for a moment while another process reads the file: retry briefly.
+  for (let i = 0; ; i++) {
+    try { fs.renameSync(tmp, file); return; } catch (e) {
+      if (i >= 20 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) throw e;
+      sleepSync(20);
+    }
+  }
+}
+
+// Several agents can run at the same time. Every read-modify-write of a shared file goes
+// through this lock, so two agents adding leads at once never lose a row.
+export function withLock(file, fn, { timeout = 15000, stale = 30000 } = {}) {
+  const lock = `${file}.lock`;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const start = Date.now();
+  for (;;) {
+    try {
+      fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
+      break;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try { if (Date.now() - fs.statSync(lock).mtimeMs > stale) { fs.unlinkSync(lock); continue; } } catch {}
+      if (Date.now() - start > timeout) throw new Error(`${path.basename(file)} is busy (delete ${lock} if no agent is running)`);
+      sleepSync(15 + Math.random() * 35);
+    }
+  }
+  try { return fn(); } finally { try { fs.unlinkSync(lock); } catch {} }
 }
 
 // ---------- CSV (RFC 4180) ----------
@@ -109,7 +137,7 @@ export function stringifyFrontMatter(data, body) {
 
 // ---------- Events (the live feed) ----------
 export function logEvent(role, type, text, file = '') {
-  const rel = file ? path.relative(ROOT, path.resolve(file)) : '';
+  const rel = file ? path.relative(ROOT, path.resolve(file)).split(path.sep).join('/') : '';
   const line = JSON.stringify({ ts: now(), role: role || 'director', type, text, path: rel });
   fs.mkdirSync(path.dirname(P.events), { recursive: true });
   fs.appendFileSync(P.events, line + '\n');

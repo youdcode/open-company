@@ -4,7 +4,7 @@
 //   node tools/board.mjs add "Find 20 accounts in Lyon" --role researcher
 //   node tools/board.mjs move "Find 20 accounts" --to doing --as researcher
 //   node tools/board.mjs show
-import { P, readText, writeText, logEvent, args, fail, requireWorkspace, isMain } from './lib/common.mjs';
+import { P, readText, writeText, logEvent, args, fail, requireWorkspace, isMain, withLock } from './lib/common.mjs';
 
 export const COLUMNS = ['Todo', 'Doing', 'Review', 'Done'];
 
@@ -30,27 +30,33 @@ export function renderBoard(cols) {
 }
 
 export function addTask(text, role = '', as = 'director') {
-  const cols = parseBoard();
-  cols.Todo.push({ text, role });
-  writeText(P.board, renderBoard(cols));
+  withLock(P.board, () => {
+    const cols = parseBoard();
+    cols.Todo.push({ text, role });
+    writeText(P.board, renderBoard(cols));
+  });
   logEvent(as, 'task', `New task${role ? ` for ${role}` : ''}: ${text}`, P.board);
 }
 
 export function moveTask(text, toName, as) {
   const to = COLUMNS.find(c => c.toLowerCase() === String(toName || '').toLowerCase());
   if (!to) throw new Error(`column must be one of ${COLUMNS.join('|').toLowerCase()}`);
-  const cols = parseBoard();
-  for (const c of COLUMNS) {
-    const i = cols[c].findIndex(t => t.text.toLowerCase().includes(text.toLowerCase()));
-    if (i >= 0) {
-      const [t] = cols[c].splice(i, 1);
-      cols[to].push(t);
-      writeText(P.board, renderBoard(cols));
-      logEvent(as || t.role || 'director', 'task', `${to === 'Done' ? 'Done' : `Moved to ${to}`}: ${t.text}`, P.board);
-      return to;
+  const moved = withLock(P.board, () => {
+    const cols = parseBoard();
+    for (const c of COLUMNS) {
+      const i = cols[c].findIndex(t => t.text.toLowerCase().includes(text.toLowerCase()));
+      if (i >= 0) {
+        const [t] = cols[c].splice(i, 1);
+        cols[to].push(t);
+        writeText(P.board, renderBoard(cols));
+        return t;
+      }
     }
-  }
-  throw new Error(`no task matching "${text}"`);
+    return null;
+  });
+  if (!moved) throw new Error(`no task matching "${text}"`);
+  logEvent(as || moved.role || 'director', 'task', `${to === 'Done' ? 'Done' : `Moved to ${to}`}: ${moved.text}`, P.board);
+  return to;
 }
 
 function main() {

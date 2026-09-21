@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   P, readLeads, writeLeads, readText, writeText, parseFrontMatter, stringifyFrontMatter,
-  logEvent, args, fail, requireWorkspace, today, now, isMain,
+  logEvent, args, fail, requireWorkspace, today, now, isMain, withLock,
 } from './lib/common.mjs';
 
 export const DRAFT_STATUSES = ['draft', 'approved', 'rejected', 'exported'];
@@ -27,6 +27,10 @@ export function listDrafts() {
 }
 
 export function setDraftStatus(id, status, role = 'you') {
+  return withLock(P.leads, () => setDraftStatusUnlocked(id, status, role));
+}
+
+function setDraftStatusUnlocked(id, status, role) {
   if (!DRAFT_STATUSES.includes(status)) throw new Error(`status must be one of ${DRAFT_STATUSES.join(', ')}`);
   const file = fileOf(id);
   if (!fs.existsSync(file)) throw new Error(`no draft for "${id}"`);
@@ -42,7 +46,11 @@ export function setDraftStatus(id, status, role = 'you') {
   return data;
 }
 
-export function createDraft(id, { subject, body, channel = 'email', followup = false, author = 'sales' }) {
+export function createDraft(id, opts) {
+  return withLock(P.leads, () => createDraftUnlocked(id, opts));
+}
+
+function createDraftUnlocked(id, { subject, body, channel = 'email', followup = false, author = 'sales' }) {
   const leads = readLeads();
   const lead = leads.find(l => l.id === id);
   if (!lead) throw new Error(`no lead with id "${id}" (add it with tools/leads.mjs first)`);
