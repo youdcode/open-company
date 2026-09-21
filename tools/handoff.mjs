@@ -4,7 +4,7 @@
 // Usage: node tools/handoff.mjs --from researcher --to sales --subject "12 accounts ready" \
 //          --body "Top 5 are hot, see leads.csv" [--link workspace/prospecting/leads.csv]
 import path from 'node:path';
-import { P, args, fail, requireWorkspace, stringifyFrontMatter, writeText, logEvent, slugify, now, isMain } from './lib/common.mjs';
+import { P, args, fail, requireWorkspace, stringifyFrontMatter, writeText, logEvent, slugify, now, isMain, helpIfAsked } from './lib/common.mjs';
 
 export function writeHandoff({ from, to, subject, body = '', link = '' }) {
   if (!from || !to || !subject) throw new Error('from, to and subject are required');
@@ -16,6 +16,7 @@ export function writeHandoff({ from, to, subject, body = '', link = '' }) {
   return file;
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) {
   requireWorkspace();
   const a = args();

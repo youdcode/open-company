@@ -10,6 +10,12 @@
       "*": "ask",
       "node tools/*": "allow",
       "node viewer/*": "allow",
+      "ls": "allow",
+      "ls *": "allow",
+      "cat *": "allow",
+      "head *": "allow",
+      "wc *": "allow",
+      "pwd": "allow",
       "git push *": "deny",
       "rm *": "deny"
     },

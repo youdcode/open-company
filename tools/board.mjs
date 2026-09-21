@@ -4,7 +4,7 @@
 //   node tools/board.mjs add "Find 20 accounts in Lyon" --role researcher
 //   node tools/board.mjs move "Find 20 accounts" --to doing --as researcher
 //   node tools/board.mjs show
-import { P, readText, writeText, logEvent, args, fail, requireWorkspace, isMain, withLock } from './lib/common.mjs';
+import { P, readText, writeText, logEvent, args, fail, requireWorkspace, isMain, withLock, helpIfAsked } from './lib/common.mjs';
 
 export const COLUMNS = ['Todo', 'Doing', 'Review', 'Done'];
 
@@ -81,4 +81,5 @@ function main() {
   fail('commands: add, move, show');
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) main();

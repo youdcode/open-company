@@ -5,9 +5,11 @@
 import path from 'node:path';
 import {
   P, readLeads, writeLeads, toCSV, writeText, readText, parseFrontMatter, stringifyFrontMatter,
-  logEvent, requireWorkspace, today, now, withLock,
+  logEvent, requireWorkspace, today, now, withLock, helpIfAsked
 } from './lib/common.mjs';
 import { listDrafts } from './drafts.mjs';
+
+helpIfAsked(import.meta.url);
 
 requireWorkspace();
 withLock(P.leads, () => {

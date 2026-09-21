@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Post a line to the live feed (the local page shows it instantly).
 // Usage: node tools/log.mjs <role> "<what you are doing>" [--path file] [--type work]
-import { logEvent, args, fail, requireWorkspace } from './lib/common.mjs';
+import { logEvent, args, fail, requireWorkspace, helpIfAsked } from './lib/common.mjs';
+
+helpIfAsked(import.meta.url);
 
 requireWorkspace();
 const a = args();

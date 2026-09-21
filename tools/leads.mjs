@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import {
   LEAD_COLUMNS, LEAD_STATUSES, readLeads, writeLeads, slugify, today, logEvent,
-  args, fail, requireWorkspace, P, isMain, withLock,
+  args, fail, requireWorkspace, P, isMain, withLock, helpIfAsked
 } from './lib/common.mjs';
 
 const URL_RE = /https?:\/\/[^\s;,]+/g;
@@ -154,4 +154,5 @@ function main() {
   fail(`unknown command "${cmd}". Commands: add, update, list, get, stats`);
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) main();

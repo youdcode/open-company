@@ -8,7 +8,7 @@
 //
 // Usage: node tools/registry-uk.mjs --q "physio" [--sic 86900,86220] [--location Leeds]
 //                                   [--incorporated-from 2015-01-01] [--limit 20] [--officers]
-import { args, fail, isMain, loadEnv } from './lib/common.mjs';
+import { args, fail, isMain, loadEnv, helpIfAsked } from './lib/common.mjs';
 
 const API = 'https://api.company-information.service.gov.uk';
 
@@ -55,6 +55,7 @@ export async function searchUK(o) {
   return { total: Number(json.hits) || results.length, results };
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) {
   searchUK(args()).then(r => console.log(JSON.stringify(r, null, 2))).catch(e => fail(e.message));
 }

@@ -167,6 +167,21 @@ export function loadEnv() {
   }
 }
 
+// Every tool answers --help (or -h) with its usage, the comment at the top of its file, and exits
+// before doing anything. Weaker models call --help first: it must never have side effects.
+export function helpIfAsked(url) {
+  const argv = process.argv.slice(2);
+  if (!url || (!argv.includes('--help') && !argv.includes('-h'))) return;
+  const lines = [];
+  for (const l of fs.readFileSync(fileURLToPath(url), 'utf8').split('\n')) {
+    if (l.startsWith('#!')) continue;
+    if (!l.startsWith('//')) break;
+    lines.push(l.replace(/^\/\/ ?/, ''));
+  }
+  console.log(lines.join('\n').trim());
+  process.exit(0);
+}
+
 export const isMain = url => !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(url);
 
 export function fail(msg) {

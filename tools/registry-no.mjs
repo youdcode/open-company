@@ -6,7 +6,7 @@
 //
 // Usage: node tools/registry-no.mjs --q "fysioterapi" [--nace 86.950] [--municipality 0301]
 //                                   [--min-employees 5] [--max-employees 50] [--limit 20] [--leaders]
-import { args, fail, isMain } from './lib/common.mjs';
+import { args, fail, isMain, helpIfAsked } from './lib/common.mjs';
 
 const API = 'https://data.brreg.no/enhetsregisteret/api';
 
@@ -61,6 +61,7 @@ export async function searchNO(o) {
   return { total: json.page?.totalElements ?? results.length, note, results };
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) {
   searchNO(args()).then(r => console.log(JSON.stringify(r, null, 2))).catch(e => fail(e.message));
 }

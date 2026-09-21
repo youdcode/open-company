@@ -9,7 +9,7 @@
 // Usage: node tools/replies.mjs [--as sales]
 import fs from 'node:fs';
 import path from 'node:path';
-import { WS, P, readLeads, readText, writeText, logEvent, args, requireWorkspace, isMain, today } from './lib/common.mjs';
+import { WS, P, readLeads, readText, writeText, logEvent, args, requireWorkspace, isMain, today, helpIfAsked } from './lib/common.mjs';
 import { updateLead } from './leads.mjs';
 
 export const INBOX = path.join(WS, 'prospecting', 'inbox');
@@ -128,6 +128,7 @@ export function processInbox(role = 'sales') {
   return report;
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) {
   requireWorkspace();
   const a = args();

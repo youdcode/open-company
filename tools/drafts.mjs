@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   P, readLeads, writeLeads, readText, writeText, parseFrontMatter, stringifyFrontMatter,
-  logEvent, args, fail, requireWorkspace, today, now, isMain, withLock,
+  logEvent, args, fail, requireWorkspace, today, now, isMain, withLock, helpIfAsked
 } from './lib/common.mjs';
 
 export const DRAFT_STATUSES = ['draft', 'approved', 'rejected', 'exported'];
@@ -109,4 +109,5 @@ function main() {
   fail('commands: new, set, list');
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) main();

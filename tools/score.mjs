@@ -4,7 +4,7 @@
 // in workspace/prospecting/icp.md (the ```json block under "Scoring").
 //
 // Usage: node tools/score.mjs [--id <lead id>] [--as qualifier]
-import { readLeads, writeLeads, readText, P, logEvent, args, fail, requireWorkspace, isMain, withLock } from './lib/common.mjs';
+import { readLeads, writeLeads, readText, P, logEvent, args, fail, requireWorkspace, isMain, withLock, helpIfAsked } from './lib/common.mjs';
 
 export function loadRules() {
   const md = readText(P.icp);
@@ -88,4 +88,5 @@ function main() {
   console.log(`scored ${r.n} leads (hot ${r.hot}, warm ${r.warm}, cold ${r.cold})`);
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) main();

@@ -83,6 +83,15 @@ ok('long handoffs are refused', r.code !== 0);
 const events = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
 ok('every step reached the live feed', events.some(e => e.type === 'lead') && events.some(e => e.type === 'draft') && events.some(e => e.type === 'review') && events.some(e => e.type === 'handoff'));
 
+console.log('--help never does anything');
+{
+  const before = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
+  const tools = ['board', 'drafts', 'export', 'handoff', 'init', 'invoice', 'leads', 'log', 'registry-fr', 'registry-no', 'registry-uk', 'replies', 'score', 'sync-adapters'];
+  const outs = tools.map(t => run(`tools/${t}.mjs`, ['--help']));
+  ok('every tool answers --help with its usage', outs.every(o => o.code === 0 && o.out.trim().length > 20));
+  ok('--help has no side effect (no event, no export)', fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8') === before);
+}
+
 console.log('several agents at the same time');
 {
   const { spawn } = await import('node:child_process');
@@ -166,6 +175,11 @@ ok('the page can approve a draft', res.ok);
   ok('the issued invoice shows its number, seller, totals and legal mentions', html.includes(`INV-${year}-0001`) && html.includes('Test Co SAS') && /959[.,]98/.test(html) && html.includes('Late payment penalty') && !html.includes('class="draft"'));
   fr = await post('paid');
   ok('then it can be marked paid', fr.ok);
+  const b2 = fs.readFileSync(path.join(TMP, 'company', 'billing.md'), 'utf8').replace('payment_terms_days: 30', 'payment_terms_days: 30\nlocale: fr-FR').replace('Late payment penalty', '<!-- note for me only -->\nLate payment penalty');
+  fs.writeFileSync(path.join(TMP, 'company', 'billing.md'), b2);
+  run('tools/invoice.mjs', ['render', iid]);
+  const htmlFr = await (await fetch(`${base}/finance/${iid}.html`)).text();
+  ok('French invoices use French labels and hide the notes written for the owner', /Facture n°/.test(htmlFr) && /Total TTC/.test(htmlFr) && /Délai de paiement/.test(htmlFr) && !/note for me only/.test(htmlFr));
 }
 res = await fetch(`${base}/api/file?path=${encodeURIComponent('../../etc/passwd')}`);
 ok('files outside the workspace are not served', res.status === 404);

@@ -8,7 +8,7 @@
 //                              [--size 11,12,21] [--category PME] [--limit 20] [--page 1]
 // Size codes (INSEE): 01=1-2 02=3-5 03=6-9 11=10-19 12=20-49 21=50-99 22=100-199
 //                     31=200-249 32=250-499 41=500-999 42=1000-1999 51=2000-4999
-import { args, fail, isMain } from './lib/common.mjs';
+import { args, fail, isMain, helpIfAsked } from './lib/common.mjs';
 
 export const SIZE = {
   NN: '', '00': '0', '01': '1-2', '02': '3-5', '03': '6-9', 11: '10-19', 12: '20-49', 21: '50-99',
@@ -52,6 +52,7 @@ export async function searchFR(o) {
   };
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) {
   const a = args();
   searchFR(a).then(r => console.log(JSON.stringify(r, null, 2))).catch(e => fail(e.message));

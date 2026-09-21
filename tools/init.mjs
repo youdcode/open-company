@@ -3,7 +3,7 @@
 // Usage: node tools/init.mjs
 import fs from 'node:fs';
 import path from 'node:path';
-import { WS, TEMPLATES, logEvent, isMain } from './lib/common.mjs';
+import { WS, TEMPLATES, logEvent, isMain, helpIfAsked } from './lib/common.mjs';
 
 export function init({ quiet = false } = {}) {
   const created = [];
@@ -23,4 +23,5 @@ export function init({ quiet = false } = {}) {
   return created;
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) init();

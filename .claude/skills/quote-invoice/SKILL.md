@@ -11,7 +11,9 @@ Role: **finance** (follow `roles/finance.md`).
    file or the human), what is sold, quantities, unit prices (from `workspace/company/profile.md` or the
    human), VAT rate if different from `workspace/company/billing.md`. Ask for anything missing.
 2. Write the document as JSON in `workspace/tmp/doc.json`:
-   `{"type":"quote","client":{"name":"...","address":"...","vat_id":"","lead":"<lead id>"},"lines":[{"description":"...","qty":1,"unit_price":450}],"notes":"..."}`
+   `{"type":"quote","client":{"name":"...","address":"...","registration":"<SIREN or company number>","vat_id":"","lead":"<lead id>"},"lines":[{"description":"...","qty":1,"unit_price":450}],"service_date":"YYYY-MM-DD","operation":"services","notes":"..."}`
+   For an invoice, `service_date` (when the work was delivered) and `operation` (services, goods or both)
+   are required in France; the client's registration number too for business clients.
 3. `node tools/invoice.mjs new --file workspace/tmp/doc.json --as finance`. The script computes the
    totals. Never compute or round them yourself.
 4. For an invoice from an accepted quote: `node tools/invoice.mjs from-quote <quote id> --as finance`.

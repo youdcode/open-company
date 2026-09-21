@@ -6,8 +6,9 @@
 //
 // Usage:
 //   node tools/invoice.mjs new --file workspace/tmp/doc.json [--as finance]
-//        doc.json: {"type":"quote"|"invoice","client":{"name":"...","address":"...","vat_id":"...","lead":"<lead id>"},
-//                   "lines":[{"description":"...","qty":2,"unit_price":450,"vat_rate":20}],"notes":"..."}
+//        doc.json: {"type":"quote"|"invoice","client":{"name":"...","address":"...","registration":"SIREN","vat_id":"...","lead":"<lead id>"},
+//                   "lines":[{"description":"...","qty":2,"unit_price":450,"vat_rate":20}],
+//                   "service_date":"2026-09-30","operation":"services"|"goods"|"both","notes":"..."}
 //   node tools/invoice.mjs from-quote <quote-id>      (invoice draft from an accepted quote)
 //   node tools/invoice.mjs list
 //   node tools/invoice.mjs show <id>
@@ -15,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  WS, readText, writeText, parseFrontMatter, logEvent, args, fail, requireWorkspace, isMain, withLock, slugify, today, now,
+  WS, readText, writeText, parseFrontMatter, logEvent, args, fail, requireWorkspace, isMain, withLock, slugify, today, now, helpIfAsked
 } from './lib/common.mjs';
 
 export const DIR = path.join(WS, 'departments', 'finance', 'documents');
@@ -28,7 +29,8 @@ export const htmlOf = id => path.join(DIR, `${id}.html`);
 
 export function billing() {
   const { data, body } = parseFrontMatter(readText(BILLING));
-  return { ...data, footer: body.replace(/^#.*\n/m, '').trim(), vat_rate: data.vat_rate === '' || data.vat_rate == null ? 20 : Number(data.vat_rate) };
+  // HTML comments in billing.md are notes for you, never printed on documents.
+  return { ...data, footer: body.replace(/<!--[\s\S]*?-->/g, '').replace(/^#.*\n/m, '').trim(), vat_rate: data.vat_rate === '' || data.vat_rate == null ? 20 : Number(data.vat_rate) };
 }
 
 const cents = x => Math.round(Number(x) * 100);
@@ -84,6 +86,7 @@ export function createDoc(input, author = 'finance') {
   const doc = save({
     id, type: input.type, status: 'draft', number: '', client: input.client, lines: input.lines,
     notes: input.notes || '', currency: input.currency, created: now(), author, from_quote: input.from_quote || '',
+    service_date: input.service_date || '', operation: input.operation || '',
   });
   logEvent(author, 'finance', `Drafted a ${doc.type} for ${doc.client.name}: ${fmt(doc.totals.gross, doc.currency)} incl. VAT`, jsonOf(id));
   return doc;
@@ -127,7 +130,7 @@ export function fromQuote(qid, author = 'finance') {
   const q = readDoc(qid);
   if (!q || q.type !== 'quote') throw new Error(`no quote "${qid}"`);
   if (q.status !== 'accepted') throw new Error(`quote ${q.number || qid} is ${q.status}: only an accepted quote becomes an invoice`);
-  return createDoc({ type: 'invoice', client: q.client, lines: q.lines.map(({ description, qty, unit_price, vat_rate }) => ({ description, qty, unit_price, vat_rate })), notes: q.notes, currency: q.currency, from_quote: q.number }, author);
+  return createDoc({ type: 'invoice', client: q.client, lines: q.lines.map(({ description, qty, unit_price, vat_rate }) => ({ description, qty, unit_price, vat_rate })), notes: q.notes, currency: q.currency, from_quote: q.number, operation: q.operation }, author);
 }
 
 export function fmt(amount, currency = 'EUR', locale = 'en-GB') {
@@ -137,20 +140,34 @@ export function fmt(amount, currency = 'EUR', locale = 'en-GB') {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nl = s => esc(s).replace(/\n/g, '<br>');
 
+const LABELS = {
+  en: { quote: 'Quote', invoice: 'Invoice', number: 'number', draft: 'DRAFT, not issued', date: 'Date', due: 'Due date', valid: 'Valid until',
+    service: 'Date of service', operation: 'Operation', fromQuote: 'Quote', for: 'Prepared for', billTo: 'Bill to', vat: 'VAT', reg: 'Registration',
+    desc: 'Description', qty: 'Qty', unit: 'Unit price', amount: 'Amount', net: 'Total excl. VAT', gross: 'Total', pay: 'Payment by bank transfer',
+    terms: d => `Payment terms: ${d} days.`, fill: 'Your company (fill workspace/company/billing.md)', ops: { services: 'Services', goods: 'Goods', both: 'Goods and services' } },
+  fr: { quote: 'Devis', invoice: 'Facture', number: 'n°', draft: 'BROUILLON, non émis', date: 'Date', due: "Date d'échéance", valid: "Valable jusqu'au",
+    service: 'Date de la prestation', operation: "Nature de l'opération", fromQuote: 'Devis', for: 'Établi pour', billTo: 'Facturé à', vat: 'TVA', reg: 'SIREN',
+    desc: 'Désignation', qty: 'Qté', unit: 'Prix unitaire HT', amount: 'Montant HT', net: 'Total HT', gross: 'Total TTC', pay: 'Paiement par virement',
+    terms: d => `Délai de paiement : ${d} jours.`, fill: 'Votre entreprise (complétez workspace/company/billing.md)', ops: { services: 'Prestation de services', goods: 'Livraison de biens', both: 'Biens et services' } },
+};
+
 export function renderHTML(d, b = billing()) {
   const loc = b.locale || 'en-GB';
+  const t = LABELS[loc.slice(0, 2)] || LABELS.en;
   const money = x => esc(fmt(x, d.currency, loc));
-  const title = d.type === 'quote' ? 'Quote' : 'Invoice';
+  const title = d.type === 'quote' ? t.quote : t.invoice;
   const draft = d.status === 'draft';
   const rows = d.lines.map(l => `<tr><td>${nl(l.description)}</td><td class="n">${esc(l.qty)}</td><td class="n">${money(Number(l.unit_price))}</td><td class="n">${esc(l.vat_rate)}%</td><td class="n">${money(l.net)}</td></tr>`).join('');
   const dates = [
-    d.number ? `<div><span>${title} number</span><b>${esc(d.number)}</b></div>` : `<div><span>${title}</span><b>DRAFT, not issued</b></div>`,
-    d.issue_date ? `<div><span>Date</span><b>${esc(d.issue_date)}</b></div>` : '',
-    d.due_date ? `<div><span>Due date</span><b>${esc(d.due_date)}</b></div>` : '',
-    d.valid_until ? `<div><span>Valid until</span><b>${esc(d.valid_until)}</b></div>` : '',
-    d.from_quote ? `<div><span>Quote</span><b>${esc(d.from_quote)}</b></div>` : '',
+    d.number ? `<div><span>${title} ${t.number}</span><b>${esc(d.number)}</b></div>` : `<div><span>${title}</span><b>${t.draft}</b></div>`,
+    d.issue_date ? `<div><span>${t.date}</span><b>${esc(d.issue_date)}</b></div>` : '',
+    d.service_date ? `<div><span>${t.service}</span><b>${esc(d.service_date)}</b></div>` : '',
+    d.due_date ? `<div><span>${t.due}</span><b>${esc(d.due_date)}</b></div>` : '',
+    d.valid_until ? `<div><span>${t.valid}</span><b>${esc(d.valid_until)}</b></div>` : '',
+    d.operation ? `<div><span>${t.operation}</span><b>${esc(t.ops[d.operation] || d.operation)}</b></div>` : '',
+    d.from_quote ? `<div><span>${t.fromQuote}</span><b>${esc(d.from_quote)}</b></div>` : '',
   ].join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(d.number || `${title} draft`)} · ${esc(d.client.name)}</title>
+  return `<!doctype html><html lang="${esc(loc.slice(0, 2))}"><head><meta charset="utf-8"><title>${esc(d.number || `${title} draft`)} · ${esc(d.client.name)}</title>
 <style>
 @page{size:A4;margin:18mm}*{box-sizing:border-box}body{font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#15171b;margin:0;padding:32px;max-width:820px;margin:auto}
 h1{font-size:28px;margin:0 0 4px;letter-spacing:-.02em}.top{display:flex;justify-content:space-between;gap:24px;margin-bottom:28px}
@@ -164,13 +181,13 @@ td{padding:10px 6px;border-bottom:1px solid #e6e4de;vertical-align:top}.n{text-a
 @media print{body{padding:0}}
 </style></head><body>
 ${draft ? '<div class="draft">DRAFT</div>' : ''}
-<div class="top"><div><h1>${title}</h1><div class="muted">${nl(b.legal_name || 'Your company (fill workspace/company/billing.md)')}<br>${nl(b.address || '')}${b.vat_id ? `<br>VAT ${esc(b.vat_id)}` : ''}${b.registration ? `<br>${esc(b.registration)}` : ''}</div></div>
-<div class="box"><span>${d.type === 'quote' ? 'Prepared for' : 'Bill to'}</span><b>${esc(d.client.name)}</b><br>${nl(d.client.address || '')}${d.client.vat_id ? `<br>VAT ${esc(d.client.vat_id)}` : ''}</div></div>
+<div class="top"><div><h1>${title}</h1><div class="muted">${nl(b.legal_name || t.fill)}<br>${nl(b.address || '')}${b.vat_id ? `<br>${t.vat} ${esc(b.vat_id)}` : ''}${b.registration ? `<br>${esc(b.registration)}` : ''}</div></div>
+<div class="box"><span>${d.type === 'quote' ? t.for : t.billTo}</span><b>${esc(d.client.name)}</b><br>${nl(d.client.address || '')}${d.client.registration ? `<br>${t.reg} ${esc(d.client.registration)}` : ''}${d.client.vat_id ? `<br>${t.vat} ${esc(d.client.vat_id)}` : ''}</div></div>
 <div class="meta">${dates}</div>
-<table><tr><th>Description</th><th class="n">Qty</th><th class="n">Unit price</th><th class="n">VAT</th><th class="n">Amount</th></tr>${rows}</table>
-<div class="totals"><div><span>Total excl. VAT</span><span>${money(d.totals.net)}</span></div><div><span>VAT</span><span>${money(d.totals.vat)}</span></div><div class="g"><span>Total</span><span>${money(d.totals.gross)}</span></div></div>
+<table><tr><th>${t.desc}</th><th class="n">${t.qty}</th><th class="n">${t.unit}</th><th class="n">${t.vat}</th><th class="n">${t.amount}</th></tr>${rows}</table>
+<div class="totals"><div><span>${t.net}</span><span>${money(d.totals.net)}</span></div><div><span>${t.vat}</span><span>${money(d.totals.vat)}</span></div><div class="g"><span>${t.gross}</span><span>${money(d.totals.gross)}</span></div></div>
 ${d.notes ? `<p>${nl(d.notes)}</p>` : ''}
-<div class="foot">${d.type === 'invoice' && b.iban ? `Payment by bank transfer: IBAN ${esc(b.iban)}${b.bic ? ` · BIC ${esc(b.bic)}` : ''}<br>` : ''}${d.type === 'invoice' && b.payment_terms_days ? `Payment terms: ${esc(b.payment_terms_days)} days.<br>` : ''}${nl(b.footer || '')}</div>
+<div class="foot">${d.type === 'invoice' && b.iban ? `${t.pay} : IBAN ${esc(b.iban)}${b.bic ? ` · BIC ${esc(b.bic)}` : ''}<br>` : ''}${d.type === 'invoice' && b.payment_terms_days ? `${esc(t.terms(b.payment_terms_days))}<br>` : ''}${nl(b.footer || '')}</div>
 </body></html>`;
 }
 
@@ -200,4 +217,5 @@ function main() {
   } catch (e) { fail(e.message); }
 }
 
+helpIfAsked(isMain(import.meta.url) ? import.meta.url : null);
 if (isMain(import.meta.url)) main();
