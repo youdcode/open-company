@@ -78,16 +78,24 @@ type `start`.
 
 | AI | Tool | How you pay | Status |
 |---|---|---|---|
-| Claude | [Claude Code](https://code.claude.com) | your Claude plan | tested |
-| ChatGPT | [Codex CLI](https://learn.chatgpt.com/docs) with "Sign in with ChatGPT" | your ChatGPT plan | configured from the official docs, not yet tested |
+| Claude | [Claude Code](https://code.claude.com) | your Claude plan | tested: every command, in real runs |
+| ChatGPT | [Codex CLI](https://learn.chatgpt.com/docs) with "Sign in with ChatGPT" | your ChatGPT plan | tested: setup, real prospecting with web search and the registers, scoring, drafts, handoffs |
+| Free, no account | [OpenCode](https://opencode.ai) with its free models | nothing | tested: setup, leads, scoring, drafts, handoffs (see the note below) |
+| DeepSeek, local models, others | [OpenCode](https://opencode.ai) | the provider's API key, or free local models | same tool as above; these providers not tested |
 | Gemini | [Antigravity CLI](https://antigravity.google) | free Google account (limited weekly quota) or a Google plan | configured from the official docs, not yet tested |
-| DeepSeek, local models, others | [OpenCode](https://opencode.ai) | the provider's API key, or free local models | configured from the official docs, not yet tested |
+
+**No AI subscription at all?** OpenCode's free models answer without an account (`./start opencode`,
+then pick a free model with `/models`). Two things to know: they are offered on a best-effort basis
+(during our tests one of them did not answer for several minutes), and the data you send them may be
+used to improve the model. Use them to try Open Company, not with real prospect data.
 
 Perplexity is a search engine rather than an agent tool. It can be plugged in later as a search
 source through its API (paid).
 
-Results depend on the model. Weaker models follow the rules less reliably, which is one reason the
-important rules are enforced by scripts. Reports from people testing other tools are very welcome.
+Results depend on the model. In our tests every AI respected the rules the scripts enforce (no lead
+without a source, computed scores), but judgment differed: for example, one AI kept a bakery that
+another had excluded because it already took online orders. That is one reason the important rules
+are enforced by scripts, and why you approve everything. Reports from people testing other tools are very welcome.
 
 ## The live office
 
@@ -206,7 +214,7 @@ line for this reason. Check the rules of your country.
 
 ## Roadmap
 
-- Test and tune Codex, OpenCode and Antigravity
+- Test Antigravity
 - More official company registers (Belgium, Germany, Spain...)
 - Optional direct mailbox connection (IMAP, read-only) for replies
 - Credit notes, and export of issued invoices for your accountant
