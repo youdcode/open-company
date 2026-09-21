@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node bin/start.mjs",
     "office": "node bin/start.mjs --viewer-only",
+    "demo": "node bin/demo.mjs",
     "sync": "node tools/sync-adapters.mjs",
     "test": "node tests/run.mjs"
   },

@@ -42,40 +42,51 @@ export function setDraftStatus(id, status, role = 'you') {
   return data;
 }
 
+export function createDraft(id, { subject, body, channel = 'email', followup = false, author = 'sales' }) {
+  const leads = readLeads();
+  const lead = leads.find(l => l.id === id);
+  if (!lead) throw new Error(`no lead with id "${id}" (add it with tools/leads.mjs first)`);
+  if (lead.status === 'do_not_contact') throw new Error(`${lead.company} asked not to be contacted`);
+  if (!subject) throw new Error('a subject is required');
+  if (!String(body || '').trim()) throw new Error('empty body');
+  let draftId = id;
+  if (followup) {
+    let k = 1;
+    while (fs.existsSync(fileOf(`${id}-f${k}`))) k++;
+    draftId = `${id}-f${k}`;
+  } else if (fs.existsSync(fileOf(id))) {
+    const prev = parseFrontMatter(readText(fileOf(id))).data.status;
+    if (['approved', 'exported'].includes(prev)) throw new Error(`the first message to ${lead.company} is already ${prev}. Use --followup for the next one.`);
+  }
+  const data = {
+    lead: id, kind: followup ? 'followup' : 'first', company: lead.company, to: [lead.contact_name, lead.contact_role].filter(Boolean).join(', '),
+    channel, subject, status: 'draft', author, created: now(),
+  };
+  writeText(fileOf(draftId), stringifyFrontMatter(data, String(body).trim() + '\n'));
+  if (!followup) lead.status = 'drafted';
+  lead.next_action = `${followup ? 'follow-up' : 'first message'} waiting for approval`; lead.updated = today();
+  writeLeads(leads);
+  const what = followup ? `a follow-up ${channel}` : `${/^[aeiou]/i.test(channel) ? 'an' : 'a'} ${channel}`;
+  logEvent(author, 'draft', `Drafted ${what} for ${lead.company}: "${subject}"`, fileOf(draftId));
+  return fileOf(draftId);
+}
+
 function main() {
   requireWorkspace();
   const a = args();
   const [cmd, id, status] = a._;
   if (cmd === 'new') {
     if (!id || typeof a.subject !== 'string') fail('usage: new <lead-id> --subject "..." --body "..."');
-    const leads = readLeads();
-    const lead = leads.find(l => l.id === id);
-    if (!lead) fail(`no lead with id "${id}" (add it with tools/leads.mjs first)`);
-    if (lead.status === 'do_not_contact') fail(`${lead.company} asked not to be contacted`);
-    let draftId = id;
-    if (a.followup) {
-      let k = 1;
-      while (fs.existsSync(fileOf(`${id}-f${k}`))) k++;
-      draftId = `${id}-f${k}`;
-    } else if (fs.existsSync(fileOf(id))) {
-      const prev = parseFrontMatter(readText(fileOf(id))).data.status;
-      if (['approved', 'exported'].includes(prev)) fail(`the first message to ${lead.company} is already ${prev}. Use --followup for the next one.`);
-    }
     let body = typeof a.body === 'string' ? a.body : '';
     if (!body && typeof a['body-file'] === 'string') body = fs.readFileSync(a['body-file'], 'utf8');
     if (!body && !process.stdin.isTTY) body = fs.readFileSync(0, 'utf8');
-    if (!body.trim()) fail('empty body');
-    const data = {
-      lead: id, kind: a.followup ? 'followup' : 'first', company: lead.company, to: [lead.contact_name, lead.contact_role].filter(Boolean).join(', '),
-      channel: typeof a.channel === 'string' ? a.channel : 'email', subject: a.subject,
-      status: 'draft', author: typeof a.as === 'string' ? a.as : 'sales', created: now(),
-    };
-    writeText(fileOf(draftId), stringifyFrontMatter(data, body.trim() + '\n'));
-    if (!a.followup) lead.status = 'drafted';
-    lead.next_action = `${a.followup ? 'follow-up' : 'first message'} waiting for approval`; lead.updated = today();
-    writeLeads(leads);
-    logEvent(data.author, 'draft', `Drafted a ${a.followup ? 'follow-up ' : ''}${data.channel} for ${lead.company}: "${a.subject}"`, fileOf(draftId));
-    return console.log(path.relative(process.cwd(), fileOf(draftId)));
+    try {
+      const file = createDraft(id, {
+        subject: a.subject, body, followup: !!a.followup,
+        channel: typeof a.channel === 'string' ? a.channel : 'email', author: typeof a.as === 'string' ? a.as : 'sales',
+      });
+      return console.log(path.relative(process.cwd(), file));
+    } catch (e) { fail(e.message); }
   }
   if (cmd === 'set') {
     try { setDraftStatus(id, status, typeof a.as === 'string' ? a.as : 'you'); } catch (e) { fail(e.message); }

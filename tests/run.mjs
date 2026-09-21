@@ -118,6 +118,18 @@ const feed = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
 ok('direct file edits appear in the feed with their author', /"role":"marketer","type":"file"/.test(feed));
 server.close();
 
+console.log('demo mode');
+{
+  const env = { ...process.env }; delete env.OPEN_COMPANY_WORKSPACE;
+  const dport = String(46000 + Math.floor(Math.random() * 1000));
+  let dr;
+  try { dr = execFileSync(process.execPath, [path.join(ROOT, 'bin', 'demo.mjs'), '--port', dport, '--speed', '100', '--no-open', '--exit'], { env, encoding: 'utf8' }); } catch (e) { dr = String(e.stdout || e.message); }
+  const demoLeads = fs.readFileSync(path.join(ROOT, '.demo', 'prospecting', 'leads.csv'), 'utf8');
+  ok('the demo replays a full session', /Replay finished/.test(dr) && fs.readdirSync(path.join(ROOT, '.demo', 'prospecting', 'drafts')).length === 3);
+  ok('demo scores come from the script: 3 hot, 4 warm, 1 cold', (demoLeads.match(/,hot,/g) || []).length === 3 && (demoLeads.match(/,warm,/g) || []).length === 4 && (demoLeads.match(/,cold,/g) || []).length === 1);
+  ok('demo data only uses reserved .example domains', !/https?:\/\/(?![a-z0-9.-]+\.example[/\s,"])/i.test(demoLeads));
+}
+
 if (process.argv.includes('--online')) {
   console.log('french registry (online)');
   r = run('tools/registry-fr.mjs', ['--q', 'boulangerie', '--dept', '69', '--limit', '3']);

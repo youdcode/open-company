@@ -54,7 +54,7 @@ h1{font-size:22px;letter-spacing:-.02em;margin:0}h2{font-size:15px;margin:0 0 12
 .org .lead-row{display:flex;justify-content:center;width:100%}
 .org .stem{width:1px;height:18px;background:var(--line)}
 .org .rail{height:1px;background:var(--line);width:calc(100% - 180px)}
-.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;width:100%;margin-top:18px}
+.roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;width:100%;margin-top:18px}
 .role{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow);transition:border-color .3s,transform .3s;min-width:0}
 .role.work{border-color:color-mix(in srgb,var(--c) 55%,var(--line))}
 .role .who{display:flex;align-items:center;gap:10px;min-width:0}
@@ -112,7 +112,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .md table{margin:10px 0;font-size:13px}.md th,.md td{border:1px solid var(--line)}
 .meta{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:6px}
 .meta dt{color:var(--muted)}.meta dd{margin:0;overflow-wrap:anywhere}
-@media (max-width:1100px){.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1100px){.roles{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
   nav{flex-direction:row;overflow:auto}nav a{white-space:nowrap}.engine{display:none}main{padding:16px}.kpis{grid-template-columns:repeat(2,1fr)}
   .drafts{grid-template-columns:1fr}.kanban{grid-template-columns:1fr}.hide-sm{display:none}}
@@ -138,7 +138,8 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 <script>
 const $ = s => document.querySelector(s);
 let S = null, view = 'office', seen = new Set(), pipeFilter = 'all', outFilter = 'draft';
-const ENGINES = { claude: 'Claude Code', codex: 'Codex (ChatGPT)', opencode: 'OpenCode', agy: 'Antigravity (Gemini)' };
+const ENGINES = { claude: 'Claude Code', codex: 'Codex (ChatGPT)', opencode: 'OpenCode', agy: 'Antigravity (Gemini)', demo: 'Demo replay (no AI)' };
+{ const t = new URLSearchParams(location.search).get('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; }
 const PALETTE = ['#1f5eff','#0f9f6e','#c2410c','#7c3aed','#db2777','#0891b2','#ca8a04','#4b5563','#16a34a','#e11d48'];
 
 const arg = v => esc(JSON.stringify(String(v ?? '')));
@@ -220,6 +221,7 @@ function roleStatus(id) {
 
 // ---------- views ----------
 function setupBanner() {
+  if (S.session.demo) return `<div class="banner"><b>Demo mode.</b> A fictional company and fictional leads, replayed by a script. No AI is running and nothing is real. Launch your own company with <code>./start</code>.</div>`;
   if (!S.initialized) return `<div class="banner">The workspace does not exist yet. Launch the company with <code>./start</code>.</div>`;
   if (S.company.setup !== 'done') return `<div class="banner">Your company is not set up yet. In your AI's terminal, type <code>setup</code>: it will interview you for a few minutes.</div>`;
   return '';
@@ -241,7 +243,7 @@ function feedItem(e, fresh) {
   const key = e.ts + e.role + e.text;
   const isNew = fresh && !seen.has(key); seen.add(key);
   return `<div class="ev ${isNew ? 'new' : ''}">${av(e.role)}<div class="m"><div class="h"><b>${esc(roleTitle(e.role))}</b>${ago(e.ts)}</div>
-    <div class="x">${esc(e.text)}</div>${e.path ? `<div class="f" onclick="openFile(${arg(e.path)})">${esc(e.path.replace(/^workspace\//, ''))}</div>` : ''}</div></div>`;
+    <div class="x">${esc(e.text)}</div>${e.path ? `<div class="f" onclick="openFile(${arg(e.path)})">${esc(e.path.replace(/^(workspace|\.demo)\//, ''))}</div>` : ''}</div></div>`;
 }
 function office(fresh) {
   const director = S.roles.find(r => r.id === 'director');
@@ -288,11 +290,11 @@ function board() {
 }
 function messages() {
   return `<div class="card">${S.messages.length ? S.messages.map(m => `<div class="msg"><div class="route">${av(m.from)}<b style="color:var(--ink)">${esc(roleTitle(m.from))}</b> → ${av(m.to)}<b style="color:var(--ink)">${esc(roleTitle(m.to))}</b><span style="margin-left:auto">${m.created ? ago(m.created) : ''}</span></div>
-    <div class="s">${esc(m.subject)}</div><div class="x md">${md(m.body)}</div>${m.link ? `<div class="f ev" style="padding:0;border:0"><span class="f" onclick="openFile(${arg(m.link)})">${esc(m.link.replace(/^workspace\//, ''))}</span></div>` : ''}</div>`).join('')
+    <div class="s">${esc(m.subject)}</div><div class="x md">${md(m.body)}</div>${m.link ? `<div class="f ev" style="padding:0;border:0"><span class="f" onclick="openFile(${arg(m.link)})">${esc(m.link.replace(/^(workspace|\.demo)\//, ''))}</span></div>` : ''}</div>`).join('')
     : '<div class="empty">When one role hands work to another, the note appears here.</div>'}</div>`;
 }
 function files() {
-  return `<div class="card files">${S.files.length ? S.files.map(f => `<div class="fr" onclick="openFile(${arg(f.path)})"><span class="p">${esc(f.path.replace(/^workspace\//, ''))}</span><span class="muted small" style="white-space:nowrap">${f.author ? esc(roleTitle(f.author)) + ' · ' : ''}${ago(f.mtime)}</span></div>`).join('')
+  return `<div class="card files">${S.files.length ? S.files.map(f => `<div class="fr" onclick="openFile(${arg(f.path)})"><span class="p">${esc(f.path.replace(/^(workspace|\.demo)\//, ''))}</span><span class="muted small" style="white-space:nowrap">${f.author ? esc(roleTitle(f.author)) + ' · ' : ''}${ago(f.mtime)}</span></div>`).join('')
     : '<div class="empty">No files yet.</div>'}</div>`;
 }
 
@@ -326,7 +328,7 @@ async function openFile(p) {
   const r = await fetch(`/api/file?path=${encodeURIComponent(p)}`);
   if (!r.ok) return;
   const f = await r.json();
-  $('#d-path').textContent = f.path.replace(/^workspace\//, '');
+  $('#d-path').textContent = f.path.replace(/^(workspace|\.demo)\//, '');
   $('#d-body').innerHTML = f.path.endsWith('.csv') ? csvTable(f.content) : f.path.endsWith('.md') ? md(f.content) : `<pre><code>${esc(f.content)}</code></pre>`;
   $('#drawer').classList.add('open');
 }

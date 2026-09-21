@@ -57,26 +57,31 @@ export function scoreLead(lead, rules, ref = new Date()) {
   return { score, tier, why: why.join('+') || 'no match' };
 }
 
-function main() {
-  requireWorkspace();
-  const a = args();
+export function scoreAll({ id, as = 'researcher', quiet = false } = {}) {
   const rules = loadRules();
   const fitMax = Object.values(rules.fit || {}).reduce((s, f) => s + (f.weight || 0), 0);
-  if (fitMax >= (rules.threshold?.hot ?? 60))
+  if (!quiet && fitMax >= (rules.threshold?.hot ?? 60))
     console.error(`warning: fit alone gives ${fitMax} points, at or above the hot threshold (${rules.threshold?.hot ?? 60}). Every company that fits will be "hot" even without a buying signal. Raise threshold.hot in icp.md.`);
   const leads = readLeads();
   let n = 0;
   for (const l of leads) {
-    if (a.id && l.id !== a.id) continue;
+    if (id && l.id !== id) continue;
     const r = scoreLead(l, rules);
     Object.assign(l, { score: String(r.score), tier: r.tier, score_why: r.why });
     n++;
   }
-  if (a.id && !n) fail(`no lead with id "${a.id}"`);
+  if (id && !n) fail(`no lead with id "${id}"`);
   writeLeads(leads);
   const hot = leads.filter(l => l.tier === 'hot').length, warm = leads.filter(l => l.tier === 'warm').length;
-  logEvent(typeof a.as === 'string' ? a.as : 'researcher', 'score', `Scored ${n} lead${n > 1 ? 's' : ''}: ${hot} hot, ${warm} warm`, P.leads);
-  console.log(`scored ${n} leads (hot ${hot}, warm ${warm}, cold ${leads.length - hot - warm})`);
+  logEvent(as, 'score', `Scored ${n} lead${n > 1 ? 's' : ''}: ${hot} hot, ${warm} warm`, P.leads);
+  return { n, hot, warm, cold: leads.length - hot - warm };
+}
+
+function main() {
+  requireWorkspace();
+  const a = args();
+  const r = scoreAll({ id: typeof a.id === 'string' ? a.id : '', as: typeof a.as === 'string' ? a.as : 'researcher' });
+  console.log(`scored ${r.n} leads (hot ${r.hot}, warm ${r.warm}, cold ${r.cold})`);
 }
 
 if (isMain(import.meta.url)) main();

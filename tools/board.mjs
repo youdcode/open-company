@@ -29,33 +29,44 @@ export function renderBoard(cols) {
   return out;
 }
 
+export function addTask(text, role = '', as = 'director') {
+  const cols = parseBoard();
+  cols.Todo.push({ text, role });
+  writeText(P.board, renderBoard(cols));
+  logEvent(as, 'task', `New task${role ? ` for ${role}` : ''}: ${text}`, P.board);
+}
+
+export function moveTask(text, toName, as) {
+  const to = COLUMNS.find(c => c.toLowerCase() === String(toName || '').toLowerCase());
+  if (!to) throw new Error(`column must be one of ${COLUMNS.join('|').toLowerCase()}`);
+  const cols = parseBoard();
+  for (const c of COLUMNS) {
+    const i = cols[c].findIndex(t => t.text.toLowerCase().includes(text.toLowerCase()));
+    if (i >= 0) {
+      const [t] = cols[c].splice(i, 1);
+      cols[to].push(t);
+      writeText(P.board, renderBoard(cols));
+      logEvent(as || t.role || 'director', 'task', `${to === 'Done' ? 'Done' : `Moved to ${to}`}: ${t.text}`, P.board);
+      return to;
+    }
+  }
+  throw new Error(`no task matching "${text}"`);
+}
+
 function main() {
   requireWorkspace();
   const a = args();
   const [cmd, text] = a._;
   const cols = parseBoard();
+  const as = typeof a.as === 'string' ? a.as : undefined;
   if (cmd === 'add') {
     if (!text) fail('usage: add "<task>" --role <role>');
-    const role = typeof a.role === 'string' ? a.role : '';
-    cols.Todo.push({ text, role });
-    writeText(P.board, renderBoard(cols));
-    logEvent(typeof a.as === 'string' ? a.as : 'director', 'task', `New task${role ? ` for ${role}` : ''}: ${text}`, P.board);
+    addTask(text, typeof a.role === 'string' ? a.role : '', as || 'director');
     return console.log('added');
   }
   if (cmd === 'move') {
-    const to = COLUMNS.find(c => c.toLowerCase() === String(a.to || '').toLowerCase());
-    if (!text || !to) fail(`usage: move "<part of task text>" --to ${COLUMNS.join('|').toLowerCase()}`);
-    for (const c of COLUMNS) {
-      const i = cols[c].findIndex(t => t.text.toLowerCase().includes(text.toLowerCase()));
-      if (i >= 0) {
-        const [t] = cols[c].splice(i, 1);
-        cols[to].push(t);
-        writeText(P.board, renderBoard(cols));
-        logEvent(typeof a.as === 'string' ? a.as : t.role || 'director', 'task', `${to === 'Done' ? 'Done' : `Moved to ${to}`}: ${t.text}`, P.board);
-        return console.log(`moved to ${to}`);
-      }
-    }
-    fail(`no task matching "${text}"`);
+    if (!text) fail(`usage: move "<part of task text>" --to ${COLUMNS.join('|').toLowerCase()}`);
+    try { return console.log(`moved to ${moveTask(text, a.to, as)}`); } catch (e) { fail(e.message); }
   }
   if (cmd === 'show' || !cmd) {
     for (const c of COLUMNS) { console.log(`${c} (${cols[c].length})`); cols[c].forEach(t => console.log(`  - ${t.text}${t.role ? ` @${t.role}` : ''}`)); }

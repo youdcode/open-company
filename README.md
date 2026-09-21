@@ -10,6 +10,11 @@ office opens in your browser so you can watch the team work.
 Its first job is **prospecting**: finding companies that fit your offer, proving it with sources,
 and writing short personal messages that you approve before anything goes out.
 
+![The live office: the org chart, who is working right now, and the activity feed](docs/office.jpg)
+
+<sub>Demo mode: a fictional company and fictional leads replayed by a script (`./start --demo`). No AI
+was running for this screenshot.</sub>
+
 - **No API key, no extra bill.** It runs inside Claude Code, Codex or other agent tools, logged in
   with your own plan.
 - **Not tied to one AI.** The company is written in open formats (`AGENTS.md`, `SKILL.md`). The AI is
@@ -21,6 +26,19 @@ and writing short personal messages that you approve before anything goes out.
   send with your own tools.
 - **Your data stays on your computer.** Everything the company produces lives in `workspace/`, which is
   never committed.
+
+## See it first, without any AI
+
+```bash
+git clone https://github.com/youdcode/open-company.git
+cd open-company
+./start --demo
+```
+
+The live office opens and replays one minute of a fictional company at work: the researcher finds and
+scores 8 clinics, the sales rep drafts 3 messages, the auditor checks them. Everything is invented
+(all links use the reserved `.example` domain), nothing is sent, and it costs nothing. You can click
+Approve or Reject at the end.
 
 ## Quick start
 
@@ -75,8 +93,12 @@ A local web page (it never calls an AI, so it costs nothing) that shows:
 - **Handoffs**: the short notes the roles pass to each other
 - **Files**: everything the company has produced
 
+![Pipeline: every lead with its score, tier, dated signals and sources](docs/pipeline.jpg)
+
+![Outreach: drafted messages waiting for your approval](docs/outreach.jpg)
+
 It listens on `127.0.0.1` only and refuses requests from other websites. Run it alone with
-`./start --viewer-only`.
+`./start --viewer-only`. Add `?theme=light` or `?theme=dark` to the address to force a theme.
 
 ## How it works
 
@@ -134,6 +156,7 @@ Start with small batches (`prospect 5`) to see what your plan allows.
 ## What runs on your computer
 
 - `./start`: prepares `workspace/`, serves the live office, launches your AI tool.
+- `./start --demo`: replays a fictional session in `.demo/` (recreated each time, never committed).
 - Session hooks (`.claude/settings.json`, `.codex/hooks.json`): run `node viewer/ensure.mjs`, which
   starts the live office if it is not running. That is all they do. When you open the folder
   interactively for the first time, your AI tool asks whether you trust it.

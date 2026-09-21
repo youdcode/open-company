@@ -2,7 +2,7 @@
 // One command to open the company: prepares the workspace, opens the live office in the browser,
 // then launches the AI tool you already use (logged in with your own subscription) in this folder.
 //
-// Usage: ./start [claude|codex|opencode|agy] [--viewer-only] [--no-open] [--port 4747]
+// Usage: ./start [claude|codex|opencode|agy] [--viewer-only] [--demo] [--no-open] [--port 4747]
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline/promises';
@@ -57,6 +57,13 @@ async function pickEngine(requested) {
 
 async function main() {
   const a = args();
+  if (a.demo) {
+    const rest = process.argv.slice(2).filter(x => x !== '--demo');
+    const child = spawn(process.execPath, [path.join(ROOT, 'bin', 'demo.mjs'), ...rest], { stdio: 'inherit' });
+    process.on('SIGINT', () => {});
+    child.on('exit', code => process.exit(code ?? 0));
+    return;
+  }
   const port = Number(a.port) || Number(process.env.OPEN_COMPANY_PORT) || 4747;
   process.env.OPEN_COMPANY_PORT = String(port);
   const url = `http://localhost:${port}`;
