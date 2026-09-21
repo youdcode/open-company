@@ -359,7 +359,9 @@ function connect() {
   es.onerror = () => { $('#live').classList.remove('on'); $('#live-t').textContent = 'Reconnecting…'; };
   es.addEventListener('change', e => load(JSON.parse(e.data).changed || []));
 }
-load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); connect(); });
+// ?live=0 renders a snapshot without the live connection (used for screenshots).
+const LIVE = new URLSearchParams(location.search).get('live') !== '0';
+load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); if (LIVE) connect(); else { $('#live').classList.add('on'); $('#live-t').textContent = 'Live'; } });
 setInterval(() => { if (view === 'office' && S) render(); }, 30000);
 </script>
 </body>

@@ -10,10 +10,10 @@ office opens in your browser so you can watch the team work.
 Its first job is **prospecting**: finding companies that fit your offer, proving it with sources,
 and writing short personal messages that you approve before anything goes out.
 
-![The live office: the org chart, who is working right now, and the activity feed](docs/office.jpg)
+![The live office replaying a demo: the researcher finds and scores leads, the sales rep drafts messages, the auditor checks them](docs/demo.gif)
 
-<sub>Demo mode: a fictional company and fictional leads replayed by a script (`./start --demo`). No AI
-was running for this screenshot.</sub>
+<sub>Demo mode (`./start --demo`): a fictional company and fictional leads replayed by a script, sped up.
+No AI was running for this recording.</sub>
 
 - **No API key, no extra bill.** It runs inside Claude Code, Codex or other agent tools, logged in
   with your own plan.
@@ -94,9 +94,9 @@ A local web page (it never calls an AI, so it costs nothing) that shows:
 - **Handoffs**: the short notes the roles pass to each other
 - **Files**: everything the company has produced
 
-![Pipeline: every lead with its score, tier, dated signals and sources](docs/pipeline.jpg)
+![Pipeline: every lead with its score, tier, dated signals and sources](docs/pipeline.png)
 
-![Outreach: drafted messages waiting for your approval](docs/outreach.jpg)
+![Outreach: drafted messages waiting for your approval](docs/outreach.png)
 
 It listens on `127.0.0.1` only and refuses requests from other websites. Run it alone with
 `./start --viewer-only`. Add `?theme=light` or `?theme=dark` to the address to force a theme.
