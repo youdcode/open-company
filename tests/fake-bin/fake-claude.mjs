@@ -9,6 +9,10 @@ process.stdin.on('end', () => {
   const out = o => process.stdout.write(JSON.stringify(o) + '\n');
   out({ type: 'system', subtype: 'init', session_id: resumed || 'fake-session-1' });
   out({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'node tools/leads.mjs list' } }] } });
-  out({ type: 'assistant', message: { content: [{ type: 'text', text: `**Got it**: ${prompt.trim()}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
+  const direct = /talking directly to the .*?\(([a-z-]+)\)/.exec(prompt);
+  const role = direct ? direct[1] : 'director';
+  const words = prompt.split('\n\n---\n')[0].trim();
+  const lang = /Reply in French/.test(prompt) ? ' (fr)' : '';
+  out({ type: 'assistant', message: { content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
   out({ type: 'result', subtype: 'success', is_error: false, result: 'ok', session_id: resumed || 'fake-session-1' });
 });

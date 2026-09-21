@@ -33,7 +33,7 @@ nav{display:flex;flex-direction:column;gap:2px}
 nav a{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;color:var(--ink-2);font-weight:500}
 nav a:hover{background:var(--soft);text-decoration:none}nav a.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow);outline:1px solid var(--line)}
 nav .n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.engine{margin-top:auto;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font-size:12px;color:var(--muted)}
+.engine{padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font-size:12px;color:var(--muted)}
 .engine b{color:var(--ink);display:block;font-size:13px}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.live.on .dot{background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.5);animation:pulse 2s infinite}
@@ -128,6 +128,18 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .composer{display:flex;gap:10px;padding:12px 14px;border-top:1px solid var(--line);align-items:flex-end}
 .composer textarea{flex:1;font:inherit;resize:none;min-height:44px;max-height:180px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .sugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:auto 0}.sugg button{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:7px 12px;border-radius:999px;font-size:13px}
+.lang{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--panel);align-self:flex-start}
+.lang button{border:0;background:none;color:var(--muted);font-weight:600;font-size:12px;padding:4px 10px;border-radius:7px}
+.lang button.on{background:var(--ink);color:var(--bg)}
+.side-bottom{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.to{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 0;align-items:center}.to .lbl{font-size:12px;color:var(--muted);margin-right:2px}
+.to button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:4px 10px 4px 5px;border-radius:999px;font-size:12.5px}
+.to button .av{width:18px;height:18px;border-radius:5px;font-size:8.5px}.to button.on{border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
+.to button.auto{padding-left:10px}
+.team{align-self:stretch;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:2px 4px;cursor:pointer;min-width:0}
+.team .av{width:18px;height:18px;border-radius:5px;font-size:8.5px}.team b{color:var(--ink-2);font-weight:600;white-space:nowrap}.team .s{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av.x3{font-size:10px;letter-spacing:-.03em}.team .av.x3,.who-line .av.x3,.to button .av.x3,.task .o .av.x3,.msg .route .av.x3{font-size:6.5px}.ev .av.x3{font-size:8px}
+.bub .to-line{font-size:11px;opacity:.7;margin-bottom:2px}
 @media (max-width:1100px){.roles{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
   nav{flex-direction:row;overflow:auto}nav a{white-space:nowrap}.engine{display:none}main{padding:16px}.kpis{grid-template-columns:repeat(2,1fr)}
@@ -137,39 +149,141 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 <body>
 <div class="app">
   <aside>
-    <div class="brand"><div class="mark"><i></i><i></i><i></i><i></i></div><div><b id="co">Your company</b><small>Live office</small></div></div>
+    <div class="brand"><div class="mark"><i></i><i></i><i></i><i></i></div><div><b id="co">Your company</b><small data-i18n="liveOffice">Live office</small></div></div>
     <nav id="nav">
-      <a href="#office">Office <span class="n" id="n-office"></span></a>
-      <a href="#chat">Chat <span class="n" id="n-chat"></span></a>
-      <a href="#pipeline">Pipeline <span class="n" id="n-pipeline"></span></a>
-      <a href="#outreach">Outreach <span class="n" id="n-outreach"></span></a>
-      <a href="#finance">Finance <span class="n" id="n-finance"></span></a>
-      <a href="#board">Board <span class="n" id="n-board"></span></a>
-      <a href="#messages">Handoffs <span class="n" id="n-messages"></span></a>
-      <a href="#files">Files <span class="n" id="n-files"></span></a>
+      <a href="#office"><span data-i18n="v_office">Office</span> <span class="n" id="n-office"></span></a>
+      <a href="#chat"><span data-i18n="v_chat">Chat</span> <span class="n" id="n-chat"></span></a>
+      <a href="#pipeline"><span data-i18n="v_pipeline">Pipeline</span> <span class="n" id="n-pipeline"></span></a>
+      <a href="#outreach"><span data-i18n="v_outreach">Outreach</span> <span class="n" id="n-outreach"></span></a>
+      <a href="#finance"><span data-i18n="v_finance">Finance</span> <span class="n" id="n-finance"></span></a>
+      <a href="#board"><span data-i18n="v_board">Board</span> <span class="n" id="n-board"></span></a>
+      <a href="#messages"><span data-i18n="v_messages">Handoffs</span> <span class="n" id="n-messages"></span></a>
+      <a href="#files"><span data-i18n="v_files">Files</span> <span class="n" id="n-files"></span></a>
     </nav>
-    <div class="engine"><span class="live" id="live"><span class="dot"></span><span id="live-t">Connecting…</span></span><b id="engine">No AI connected</b><span id="since"></span></div>
+    <div class="side-bottom">
+      <div class="lang" id="lang"><button data-lang="fr" onclick="setLang('fr')">FR</button><button data-lang="en" onclick="setLang('en')">EN</button></div>
+      <div class="engine"><span class="live" id="live"><span class="dot"></span><span id="live-t">…</span></span><b id="engine"></b><span id="since"></span></div>
+    </div>
   </aside>
   <main id="main"></main>
 </div>
-<div class="drawer" id="drawer"><div class="dh"><span id="d-path"></span><button class="btn" onclick="closeDrawer()">Close</button></div><div class="db md" id="d-body"></div></div>
+<div class="drawer" id="drawer"><div class="dh"><span id="d-path"></span><button class="btn" onclick="closeDrawer()" data-i18n="close">Close</button></div><div class="db md" id="d-body"></div></div>
 <script>
 const $ = s => document.querySelector(s);
 let S = null, view = 'office', seen = new Set(), pipeFilter = 'all', outFilter = 'draft';
-const ENGINES = { claude: 'Claude Code', codex: 'Codex (ChatGPT)', opencode: 'OpenCode', agy: 'Antigravity (Gemini)', demo: 'Demo replay (no AI)' };
 { const t = new URLSearchParams(location.search).get('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; }
 const PALETTE = ['#1f5eff','#0f9f6e','#c2410c','#7c3aed','#db2777','#0891b2','#ca8a04','#4b5563','#16a34a','#e11d48'];
+
+// ---------- languages ----------
+const I18N = {
+  en: {
+    liveOffice: 'Live office', close: 'Close', connecting: 'Connecting…', live: 'Live', reconnecting: 'Reconnecting…',
+    noAI: 'No AI connected', runningOn: n => `Running on ${n}`, since: t => `since ${t}`,
+    justNow: 'just now', mAgo: n => `${n}m ago`, hAgo: n => `${n}h ago`, dAgo: n => `${n}d ago`,
+    v_office: 'Office', v_chat: 'Chat', v_pipeline: 'Pipeline', v_outreach: 'Outreach', v_finance: 'Finance', v_board: 'Board', v_messages: 'Handoffs', v_files: 'Files',
+    s_office: 'Who is doing what, right now', s_chat: 'Talk to the whole team, or to one person', s_pipeline: 'Every lead is sourced. Scores are computed by a script, not guessed.',
+    s_outreach: 'Messages written by the team, waiting for your call', s_finance: 'Quotes and invoices: the team drafts, you issue', s_board: 'Tasks across the company',
+    s_messages: 'How the roles pass work to each other', s_files: 'Everything the company has produced',
+    demoBanner: '<b>Demo mode.</b> A fictional company and fictional leads, replayed by a script. No AI is running and nothing is real. Launch your own company with <code>./start</code>.',
+    noWs: 'The workspace does not exist yet. Launch the company with <code>./start</code>.',
+    notSetup: 'Your company is not set up yet. Open the <a href="#chat">Chat</a> and click <code>setup</code>: the CEO will interview you for a few minutes.',
+    k_leads: 'Leads', k_hot: 'Hot leads', k_drafts: 'Drafts to review', k_due: 'Follow-ups due',
+    waiting: 'Waiting for work', working: 'Working', idle: 'Idle', organization: 'Organization', liveActivity: 'Live activity', events: n => `${n} events`,
+    nothingYet: 'Nothing yet. Activity appears here the second an agent does something.', talkBtn: 'Talk to the team',
+    f_all: 'All', f_hot: 'Hot', f_warm: 'Warm', f_due: 'Due today',
+    c_company: 'Company', c_score: 'Score', c_tier: 'Tier', c_status: 'Status', c_signals: 'Signals', c_contact: 'Contact', c_next: 'Next', c_sources: 'Sources',
+    links: n => `${n} link(s)`, ppl: 'ppl', noLeads: 'No leads yet. In the <a href="#chat">Chat</a>, type <code>prospect 10</code>.',
+    o_draft: 'To review', o_approved: 'Approved', o_exported: 'Exported', o_rejected: 'Rejected', approve: 'Approve', reject: 'Reject', moveBack: 'Move back to review',
+    exportedNote: 'Exported. Send it from your own tool.', noDraft: 'No draft waiting. Once leads are qualified, type <code>draft</code> in the <a href="#chat">Chat</a>.', nothingHere: 'Nothing here.',
+    outreachFoot: 'Nothing is ever sent from here. Approved messages are exported to a CSV (type <code>export</code> in the chat) for the tool you already use.',
+    k_toIssue: 'Drafts to issue', k_quotesOut: 'Quotes out', k_unpaid: 'Invoices unpaid', k_paid: 'Paid',
+    billingBanner: 'Fill <code>workspace/company/billing.md</code> (legal name, address, VAT number, legal mentions) before issuing anything.',
+    c_document: 'Document', c_client: 'Client', c_total: 'Total', c_dates: 'Dates', quote: 'Quote', invoice: 'Invoice', draftNo: 'draft', exclVat: 'excl. VAT',
+    issuedOn: d => `issued ${d}`, dueOn: d => `due ${d}`, notIssued: 'not issued', open: 'Open', issue: 'Issue', confirmIssue: 'Confirm: give it the next number', cancel: 'Cancel',
+    markPaid: 'Mark paid', voidIt: 'Void', accepted: 'Accepted', declined: 'Declined', noDocs: 'No quote or invoice yet. In the <a href="#chat">Chat</a>, type <code>quote for &lt;client&gt;</code>.',
+    financeFoot: 'The AI only prepares drafts. Issuing, payments and cancellations are your clicks, and numbers follow an unbroken sequence. Open a document and print it to PDF.',
+    col_Todo: 'Todo', col_Doing: 'Doing', col_Review: 'Review', col_Done: 'Done', empty: 'Empty',
+    noHandoffs: 'When one role hands work to another, the note appears here.', noFiles: 'No files yet.', updateFailed: 'Could not update this item.',
+    l_website: 'Website', l_registry: 'Registry id', l_place: 'Place', l_industry: 'Industry', l_employees: 'Employees', l_contact: 'Contact', l_channel: 'Channel',
+    l_contactSource: 'Contact source', l_score: 'Score', l_status: 'Status', l_next: 'Next action', l_sources: 'Sources', noAccount: 'No account file yet.',
+    ai: 'AI', to: 'To', auto: 'The right person (the CEO decides)', newConv: 'New conversation', send: 'Send', stop: 'Stop',
+    placeholder: who => `Write to ${who}… (Enter to send, Shift+Enter for a new line)`, theTeam: 'the team',
+    workingStatus: 'working… (watch the Office tab)', chatFoot: 'Each message runs your AI tool in this folder with your own login. The team can research, write and update files in <code>workspace/</code>; it never sends anything.',
+    demoChat: 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.', couldNotStart: 'The team could not start.',
+    noEngine: 'no AI tool found', sugSetup: ['setup', 'What can you do for me?'], sugMain: ['status', 'What should I do today?', 'prospect 5', 'qualify', 'draft', 'followups'],
+    newConvMarker: 'New conversation',
+  },
+  fr: {
+    liveOffice: 'Bureau en direct', close: 'Fermer', connecting: 'Connexion…', live: 'En direct', reconnecting: 'Reconnexion…',
+    noAI: 'Aucune IA connectée', runningOn: n => `Tourne sur ${n}`, since: t => `depuis ${t}`,
+    justNow: "à l'instant", mAgo: n => `il y a ${n} min`, hAgo: n => `il y a ${n} h`, dAgo: n => `il y a ${n} j`,
+    v_office: 'Bureau', v_chat: 'Chat', v_pipeline: 'Pipeline', v_outreach: 'Messages', v_finance: 'Finance', v_board: 'Tâches', v_messages: 'Passations', v_files: 'Fichiers',
+    s_office: 'Qui fait quoi, en ce moment', s_chat: "Parlez à toute l'équipe, ou à une seule personne", s_pipeline: 'Chaque prospect est sourcé. Les scores sont calculés par un script, jamais devinés.',
+    s_outreach: "Les messages rédigés par l'équipe, qui attendent votre décision", s_finance: "Devis et factures : l'équipe prépare, vous émettez", s_board: "Les tâches de toute l'entreprise",
+    s_messages: 'Comment les rôles se passent le travail', s_files: "Tout ce que l'entreprise a produit",
+    demoBanner: "<b>Mode démo.</b> Une entreprise et des prospects fictifs, rejoués par un script. Aucune IA ne tourne et rien n'est réel. Lancez votre propre entreprise avec <code>./start</code>.",
+    noWs: "L'espace de travail n'existe pas encore. Lancez l'entreprise avec <code>./start</code>.",
+    notSetup: "Votre entreprise n'est pas encore configurée. Ouvrez le <a href=\"#chat\">Chat</a> et cliquez sur <code>setup</code> : le CEO vous pose quelques questions.",
+    k_leads: 'Prospects', k_hot: 'Prospects chauds', k_drafts: 'Messages à relire', k_due: 'Relances du jour',
+    waiting: 'En attente de travail', working: 'Au travail', idle: 'Inactif', organization: 'Organisation', liveActivity: 'Activité en direct', events: n => `${n} événements`,
+    nothingYet: "Rien pour l'instant. L'activité apparaît ici dès qu'un agent fait quelque chose.", talkBtn: "Parler à l'équipe",
+    f_all: 'Tous', f_hot: 'Chauds', f_warm: 'Tièdes', f_due: 'À relancer',
+    c_company: 'Entreprise', c_score: 'Score', c_tier: 'Niveau', c_status: 'Statut', c_signals: 'Signaux', c_contact: 'Contact', c_next: 'Prochaine étape', c_sources: 'Sources',
+    links: n => `${n} lien(s)`, ppl: 'pers.', noLeads: 'Aucun prospect pour l\'instant. Dans le <a href="#chat">Chat</a>, tapez <code>prospect 10</code>.',
+    o_draft: 'À relire', o_approved: 'Approuvés', o_exported: 'Exportés', o_rejected: 'Rejetés', approve: 'Approuver', reject: 'Rejeter', moveBack: 'Remettre à relire',
+    exportedNote: 'Exporté. Envoyez-le depuis votre propre outil.', noDraft: 'Aucun message en attente. Une fois les prospects qualifiés, tapez <code>draft</code> dans le <a href="#chat">Chat</a>.', nothingHere: 'Rien ici.',
+    outreachFoot: "Rien n'est jamais envoyé d'ici. Les messages approuvés sont exportés en CSV (tapez <code>export</code> dans le chat) pour l'outil que vous utilisez déjà.",
+    k_toIssue: 'Brouillons à émettre', k_quotesOut: 'Devis en cours', k_unpaid: 'Factures impayées', k_paid: 'Payé',
+    billingBanner: "Complétez <code>workspace/company/billing.md</code> (dénomination, adresse, TVA, mentions légales) avant d'émettre quoi que ce soit.",
+    c_document: 'Document', c_client: 'Client', c_total: 'Total', c_dates: 'Dates', quote: 'Devis', invoice: 'Facture', draftNo: 'brouillon', exclVat: 'HT',
+    issuedOn: d => `émis le ${d}`, dueOn: d => `échéance ${d}`, notIssued: 'non émis', open: 'Ouvrir', issue: 'Émettre', confirmIssue: 'Confirmer : attribuer le numéro suivant', cancel: 'Annuler',
+    markPaid: 'Marquer payée', voidIt: 'Annuler la facture', accepted: 'Accepté', declined: 'Refusé', noDocs: 'Aucun devis ni facture pour l\'instant. Dans le <a href="#chat">Chat</a>, tapez <code>quote for &lt;client&gt;</code>.',
+    financeFoot: "L'IA ne prépare que des brouillons. L'émission, les paiements et les annulations se font par vos clics, avec une numérotation continue. Ouvrez un document et imprimez-le en PDF.",
+    col_Todo: 'À faire', col_Doing: 'En cours', col_Review: 'À valider', col_Done: 'Fait', empty: 'Vide',
+    noHandoffs: "Quand un rôle passe du travail à un autre, le message apparaît ici.", noFiles: 'Aucun fichier pour l\'instant.', updateFailed: 'Mise à jour impossible.',
+    l_website: 'Site', l_registry: 'Identifiant officiel', l_place: 'Lieu', l_industry: 'Activité', l_employees: 'Effectif', l_contact: 'Contact', l_channel: 'Canal',
+    l_contactSource: 'Source du contact', l_score: 'Score', l_status: 'Statut', l_next: 'Prochaine étape', l_sources: 'Sources', noAccount: 'Pas encore de fiche entreprise.',
+    ai: 'IA', to: 'À', auto: 'La bonne personne (le CEO oriente)', newConv: 'Nouvelle conversation', send: 'Envoyer', stop: 'Arrêter',
+    placeholder: who => `Écrire à ${who}… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)`, theTeam: "l'équipe",
+    workingStatus: "au travail… (suivez l'onglet Bureau)", chatFoot: "Chaque message lance votre outil d'IA dans ce dossier, avec votre propre connexion. L'équipe peut chercher, écrire et mettre à jour les fichiers de <code>workspace/</code> ; elle n'envoie jamais rien.",
+    demoChat: "Le chat est désactivé en mode démo : rien n'est réel ici. Lancez votre propre entreprise avec <code>./start</code>.", couldNotStart: "L'équipe n'a pas pu démarrer.",
+    noEngine: 'aucune IA trouvée', sugSetup: ['setup', 'Que pouvez-vous faire pour moi ?'], sugMain: ['status', "Que dois-je faire aujourd'hui ?", 'prospect 5', 'qualify', 'draft', 'followups'],
+    newConvMarker: 'Nouvelle conversation',
+  },
+};
+const ROLE_FR = { director: 'CEO', researcher: 'Prospection', sales: 'Commercial', strategist: 'Stratège', marketer: 'Marketing', finance: 'Finance', tech: 'Tech', consultant: 'Consultant', auditor: 'Auditeur', you: 'Vous' };
+const DEPT_FR = { Management: 'Direction', Sales: 'Ventes', Strategy: 'Stratégie', Marketing: 'Marketing', Finance: 'Finance', Tech: 'Tech', Consulting: 'Conseil', Audit: 'Audit' };
+const STATUS_FR = { new: 'nouveau', researched: 'recherché', qualified: 'qualifié', drafted: 'rédigé', approved: 'approuvé', contacted: 'contacté', replied: 'a répondu', meeting: 'rendez-vous',
+  won: 'gagné', lost: 'perdu', do_not_contact: 'ne pas contacter', draft: 'brouillon', rejected: 'rejeté', exported: 'exporté', issued: 'émis', paid: 'payé', void: 'annulé',
+  accepted: 'accepté', declined: 'refusé', hot: 'chaud', warm: 'tiède', cold: 'froid', email: 'email', phone: 'téléphone', form: 'formulaire' };
+let LANG = (() => { try { const l = localStorage.getItem('oc-lang'); if (l) return l; } catch {} return /^fr/i.test(navigator.language || '') ? 'fr' : 'en'; })();
+const t = (k, ...a) => { const v = (I18N[LANG] || I18N.en)[k] ?? I18N.en[k] ?? k; return typeof v === 'function' ? v(...a) : v; };
+const st = v => (LANG === 'fr' ? STATUS_FR[v] : '') || v;
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('#lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+}
+function setLang(l) {
+  if (chat.busy) return; // do not rebuild the chat while the team is answering
+  LANG = l;
+  try { localStorage.setItem('oc-lang', l); } catch {}
+  applyStatic();
+  if ($('#chat-log')) $('#main').innerHTML = '';
+  render();
+}
 
 const arg = v => esc(JSON.stringify(String(v ?? '')));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const hash = s => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 const color = r => r === 'you' || r === 'director' ? 'var(--ink)' : PALETTE[hash(r) % PALETTE.length];
-const initials = r => r === 'you' ? 'YOU' : String(r).split(/[-_ ]/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
-const av = r => `<span class="av" style="--c:${color(r)};background:${color(r)}${r === 'you' || r === 'director' ? ';color:var(--bg)' : ''}">${esc(initials(r))}</span>`;
-const ago = t => { const s = Math.max(0, (Date.now() - (typeof t === 'number' ? t : Date.parse(t))) / 1000);
-  return s < 45 ? 'just now' : s < 3600 ? `${Math.round(s / 60)}m ago` : s < 86400 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`; };
+const initials = r => r === 'you' ? (LANG === 'fr' ? 'VS' : 'YOU') : r === 'director' ? 'CEO' : String(r).split(/[-_ ]/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+const av = r => `<span class="av${initials(r).length > 2 ? ' x3' : ''}" style="--c:${color(r)};background:${color(r)}${r === 'you' || r === 'director' ? ';color:var(--bg)' : ''}">${esc(initials(r))}</span>`;
+const ago = x => { const s = Math.max(0, (Date.now() - (typeof x === 'number' ? x : Date.parse(x))) / 1000);
+  return s < 45 ? t('justNow') : s < 3600 ? t('mAgo', Math.round(s / 60)) : s < 86400 ? t('hAgo', Math.round(s / 3600)) : t('dAgo', Math.round(s / 86400)); };
 const today = () => new Date().toISOString().slice(0, 10);
-const roleTitle = id => (S.roles.find(r => r.id === id) || {}).title || (id === 'you' ? 'You' : id);
+const roleTitle = id => (LANG === 'fr' && ROLE_FR[id]) || (S && (S.roles.find(r => r.id === id) || {}).title) || (id === 'you' ? 'You' : id);
+const deptName = d => (LANG === 'fr' && DEPT_FR[d]) || d;
 
 // ---------- minimal, safe markdown ----------
 function inline(s) {
@@ -199,7 +313,7 @@ function md(src) {
     if (/^\s*([-*]|\d+\.)\s+/.test(l)) {
       const ordered = /^\s*\d+\./.test(l), items = [];
       while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) items.push(lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, '').replace(/^\[( |x)\]\s*/, (m, x) => x === 'x' ? '✓ ' : '☐ '));
-      out.push(`<${ordered ? 'ol' : 'ul'}>${items.map(t => `<li>${inline(t)}</li>`).join('')}</${ordered ? 'ol' : 'ul'}>`); continue;
+      out.push(`<${ordered ? 'ol' : 'ul'}>${items.map(x => `<li>${inline(x)}</li>`).join('')}</${ordered ? 'ol' : 'ul'}>`); continue;
     }
     if (!l.trim()) { i++; continue; }
     const p = []; while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|```|>|\s*([-*]|\d+\.)\s|\s*\|)/.test(lines[i])) p.push(lines[i++]);
@@ -239,23 +353,23 @@ function roleStatus(id) {
 
 // ---------- views ----------
 function setupBanner() {
-  if (S.session.demo) return `<div class="banner"><b>Demo mode.</b> A fictional company and fictional leads, replayed by a script. No AI is running and nothing is real. Launch your own company with <code>./start</code>.</div>`;
-  if (!S.initialized) return `<div class="banner">The workspace does not exist yet. Launch the company with <code>./start</code>.</div>`;
-  if (S.company.setup !== 'done') return `<div class="banner">Your company is not set up yet. Open the <a href="#chat">Chat</a> and click <code>setup</code>: the Director will interview you for a few minutes.</div>`;
+  if (S.session.demo) return `<div class="banner">${t('demoBanner')}</div>`;
+  if (!S.initialized) return `<div class="banner">${t('noWs')}</div>`;
+  if (S.company.setup !== 'done') return `<div class="banner">${t('notSetup')}</div>`;
   return '';
 }
 function kpis() {
   const L = S.leads, due = L.filter(l => l.next_action_date && l.next_action_date <= today() && !['won','lost','do_not_contact'].includes(l.status)).length;
   const waiting = S.drafts.filter(d => d.status === 'draft').length;
-  const k = [['Leads', L.length], ['Hot leads', L.filter(l => l.tier === 'hot').length], ['Drafts to review', waiting], ['Follow-ups due', due]];
+  const k = [[t('k_leads'), L.length], [t('k_hot'), L.filter(l => l.tier === 'hot').length], [t('k_drafts'), waiting], [t('k_due'), due]];
   return `<div class="kpis">${k.map(([a, b]) => `<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>`;
 }
 function roleCard(r) {
-  const st = roleStatus(r.id);
-  return `<div class="role ${st.working ? 'work' : ''}" style="--c:${color(r.id)}">
-    <div class="who">${av(r.id)}<div style="min-width:0"><div class="t">${esc(r.title)}</div><div class="d">${esc(r.department)}</div></div></div>
-    <div class="last">${st.last ? esc(st.last.text) : '<span class="muted">Waiting for work</span>'}</div>
-    <div>${st.working ? '<span class="pill work">Working</span>' : `<span class="pill">${st.last ? 'Idle · ' + ago(st.last.ts) : 'Idle'}</span>`}</div></div>`;
+  const s2 = roleStatus(r.id);
+  return `<div class="role ${s2.working ? 'work' : ''}" style="--c:${color(r.id)}">
+    <div class="who">${av(r.id)}<div style="min-width:0"><div class="t">${esc(roleTitle(r.id))}</div><div class="d">${esc(deptName(r.department))}</div></div></div>
+    <div class="last">${s2.last ? esc(s2.last.text) : `<span class="muted">${t('waiting')}</span>`}</div>
+    <div>${s2.working ? `<span class="pill work">${t('working')}</span>` : `<span class="pill">${s2.last ? t('idle') + ' · ' + ago(s2.last.ts) : t('idle')}</span>`}</div></div>`;
 }
 function feedItem(e, fresh) {
   const key = e.ts + e.role + e.text;
@@ -267,75 +381,122 @@ function office(fresh) {
   const director = S.roles.find(r => r.id === 'director');
   const team = S.roles.filter(r => r.id !== 'director');
   const evs = S.events.slice().reverse().slice(0, 80);
-  const talk = S.session.demo ? '' : `<div style="display:flex;justify-content:flex-end;margin:-8px 0 14px"><a class="btn primary" href="#chat">Talk to the Director</a></div>`;
+  const talk = S.session.demo ? '' : `<div style="display:flex;justify-content:flex-end;margin:-8px 0 14px"><a class="btn primary" href="#chat">${t('talkBtn')}</a></div>`;
   return `${setupBanner()}${talk}${kpis()}
   <div class="grid2">
-    <div class="card pad"><h2>Organization</h2>
+    <div class="card pad"><h2>${t('organization')}</h2>
       <div class="org">${director ? `<div class="lead-row"><div style="width:220px">${roleCard(director)}</div></div><div class="stem"></div><div class="rail hide-sm"></div>` : ''}
       <div class="roles">${team.map(roleCard).join('')}</div></div></div>
-    <div class="card"><div class="pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Live activity</h2><span class="muted small">${S.events.length} events</span></div>
-      <div class="feed">${evs.length ? evs.map(e => feedItem(e, fresh)).join('') : '<div class="empty">Nothing yet. Activity appears here the second an agent does something.</div>'}</div></div>
+    <div class="card"><div class="pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">${t('liveActivity')}</h2><span class="muted small">${t('events', S.events.length)}</span></div>
+      <div class="feed">${evs.length ? evs.map(e => feedItem(e, fresh)).join('') : `<div class="empty">${t('nothingYet')}</div>`}</div></div>
   </div>`;
 }
 function pipeline() {
   let L = S.leads.slice().sort((a, b) => (+b.score || 0) - (+a.score || 0));
   if (pipeFilter === 'hot' || pipeFilter === 'warm') L = L.filter(l => l.tier === pipeFilter);
   if (pipeFilter === 'due') L = L.filter(l => l.next_action_date && l.next_action_date <= today());
-  const f = [['all', 'All'], ['hot', 'Hot'], ['warm', 'Warm'], ['due', 'Due today']];
-  return `<div class="filters">${f.map(([k, t]) => `<button class="${pipeFilter === k ? 'on' : ''}" onclick="pipeFilter='${k}';render()">${t}</button>`).join('')}</div>
-  <div class="card" style="overflow:auto">${L.length ? `<table><tr><th>Company</th><th class="num">Score</th><th>Tier</th><th>Status</th><th class="hide-sm">Signals</th><th class="hide-sm">Contact</th><th class="hide-sm">Next</th><th class="hide-sm">Sources</th></tr>
-  ${L.map(l => `<tr class="row" onclick="openLead(${arg(l.id)})"><td><b>${esc(l.company)}</b><div class="muted small">${esc([l.city, l.industry, l.employees && l.employees + ' ppl'].filter(Boolean).join(' · '))}</div></td>
-    <td class="num"><b>${esc(l.score || '')}</b></td><td>${l.tier ? `<span class="pill ${esc(l.tier)}">${esc(l.tier)}</span>` : ''}</td><td><span class="pill ${esc(l.status)}">${esc(l.status)}</span></td>
-    <td class="hide-sm"><div class="chips">${String(l.signals || '').split(/;\s*/).filter(Boolean).map(s => `<span class="chip">${esc(s.replace('@', ' · '))}</span>`).join('')}</div></td>
+  const f = [['all', t('f_all')], ['hot', t('f_hot')], ['warm', t('f_warm')], ['due', t('f_due')]];
+  return `<div class="filters">${f.map(([k, x]) => `<button class="${pipeFilter === k ? 'on' : ''}" onclick="pipeFilter='${k}';render()">${x}</button>`).join('')}</div>
+  <div class="card" style="overflow:auto">${L.length ? `<table><tr><th>${t('c_company')}</th><th class="num">${t('c_score')}</th><th>${t('c_tier')}</th><th>${t('c_status')}</th><th class="hide-sm">${t('c_signals')}</th><th class="hide-sm">${t('c_contact')}</th><th class="hide-sm">${t('c_next')}</th><th class="hide-sm">${t('c_sources')}</th></tr>
+  ${L.map(l => `<tr class="row" onclick="openLead(${arg(l.id)})"><td><b>${esc(l.company)}</b><div class="muted small">${esc([l.city, l.industry, l.employees && l.employees + ' ' + t('ppl')].filter(Boolean).join(' · '))}</div></td>
+    <td class="num"><b>${esc(l.score || '')}</b></td><td>${l.tier ? `<span class="pill ${esc(l.tier)}">${esc(st(l.tier))}</span>` : ''}</td><td><span class="pill ${esc(l.status)}">${esc(st(l.status))}</span></td>
+    <td class="hide-sm"><div class="chips">${String(l.signals || '').split(/;\s*/).filter(Boolean).map(x => `<span class="chip">${esc(x.replace('@', ' · '))}</span>`).join('')}</div></td>
     <td class="hide-sm small">${esc(l.contact_role || '')}</td><td class="hide-sm small">${esc(l.next_action || '')}${l.next_action_date ? `<div class="muted">${esc(l.next_action_date)}</div>` : ''}</td>
-    <td class="hide-sm small">${(String(l.sources).match(/https?:\/\/\S+/g) || []).length} link(s)</td></tr>`).join('')}</table>`
-  : '<div class="empty">No leads yet. In your AI\'s terminal, type <code>prospect 10</code>.</div>'}</div>`;
+    <td class="hide-sm small">${t('links', (String(l.sources).match(/https?:\/\/\S+/g) || []).length)}</td></tr>`).join('')}</table>`
+  : `<div class="empty">${t('noLeads')}</div>`}</div>`;
 }
 function outreach() {
-  const tabs = [['draft', 'To review'], ['approved', 'Approved'], ['exported', 'Exported'], ['rejected', 'Rejected']];
+  const tabs = [['draft', t('o_draft')], ['approved', t('o_approved')], ['exported', t('o_exported')], ['rejected', t('o_rejected')]];
   const D = S.drafts.filter(d => d.status === outFilter);
-  return `<div class="filters">${tabs.map(([k, t]) => `<button class="${outFilter === k ? 'on' : ''}" onclick="outFilter='${k}';render()">${t} (${S.drafts.filter(d => d.status === k).length})</button>`).join('')}</div>
-  ${D.length ? `<div class="drafts">${D.map(d => `<div class="card draft"><div class="hd"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(d.company)}</b><span class="pill ${esc(d.status)}">${esc(d.channel || 'email')}</span></div>
+  return `<div class="filters">${tabs.map(([k, x]) => `<button class="${outFilter === k ? 'on' : ''}" onclick="outFilter='${k}';render()">${x} (${S.drafts.filter(d => d.status === k).length})</button>`).join('')}</div>
+  ${D.length ? `<div class="drafts">${D.map(d => `<div class="card draft"><div class="hd"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(d.company)}</b><span class="pill ${esc(d.status)}">${esc(st(d.channel || 'email'))}</span></div>
     <div class="muted small">${esc(d.to || '')}</div><div class="subj">${esc(d.subject || '')}</div></div><div class="body">${esc(d.body)}</div>
-    <div class="ft">${d.status === 'draft' ? `<button class="btn primary" onclick="review(${arg(d.id)},'approved',this)">Approve</button><button class="btn" onclick="review(${arg(d.id)},'rejected',this)">Reject</button>`
-      : d.status === 'exported' ? '<span class="muted small">Exported. Send it from your own tool.</span>' : `<button class="btn" onclick="review(${arg(d.id)},'draft',this)">Move back to review</button>`}
+    <div class="ft">${d.status === 'draft' ? `<button class="btn primary" onclick="review(${arg(d.id)},'approved',this)">${t('approve')}</button><button class="btn" onclick="review(${arg(d.id)},'rejected',this)">${t('reject')}</button>`
+      : d.status === 'exported' ? `<span class="muted small">${t('exportedNote')}</span>` : `<button class="btn" onclick="review(${arg(d.id)},'draft',this)">${t('moveBack')}</button>`}
     <span class="muted small" style="margin-left:auto">${esc(roleTitle(d.author || 'sales'))}</span></div></div>`).join('')}</div>`
-  : `<div class="card empty">${outFilter === 'draft' ? 'No draft waiting. Once leads are qualified, type <code>draft</code> in your AI\'s terminal.' : 'Nothing here.'}</div>`}
-  <p class="muted small">Nothing is ever sent from here. Approved messages are exported to a CSV (<code>node tools/export.mjs</code>) for the tool you already use.</p>`;
+  : `<div class="card empty">${outFilter === 'draft' ? t('noDraft') : t('nothingHere')}</div>`}
+  <p class="muted small">${t('outreachFoot')}</p>`;
 }
-// ---------- chat with the Director ----------
-let chat = { info: null, busy: false };
+
+// ---------- chat: talk to the team, or to one role ----------
+let chat = { info: null, busy: false, to: (() => { try { return localStorage.getItem('oc-to') || 'auto'; } catch { return 'auto'; } })(), shownTeam: new Set(), reply: null };
+const isTeam = e => e.type === 'handoff' || (e.type === 'task' && /^Done:/.test(e.text || ''));
 function chatView() {
-  return `<div class="card chat"><div class="chat-bar"><span class="muted small">Talking to the Director with</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
-    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" onclick="chatNew()">New conversation</button></div>
+  return `<div class="card chat"><div class="chat-bar"><span class="muted small">${t('ai')}</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
+    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
     <div class="chat-log" id="chat-log"></div>
-    <div class="composer"><textarea id="chat-input" rows="1" placeholder="Write to the Director… (Enter to send, Shift+Enter for a new line)"></textarea>
-    <button class="btn primary" id="chat-send" onclick="chatSend()">Send</button><button class="btn" id="chat-stop" style="display:none" onclick="chatStop()">Stop</button></div></div>
-  <p class="muted small">Each message runs your AI tool in this folder with your own login. The Director can research, write and update files in <code>workspace/</code>; it never sends anything.</p>`;
+    <div class="to" id="chat-to"></div>
+    <div class="composer"><textarea id="chat-input" rows="1"></textarea>
+    <button class="btn primary" id="chat-send" onclick="chatSend()">${t('send')}</button><button class="btn" id="chat-stop" style="display:none" onclick="chatStop()">${t('stop')}</button></div></div>
+  <p class="muted small">${t('chatFoot')}</p>`;
 }
-function bubble(from, html) {
+function recipients() {
+  const ids = ['director', ...S.roles.filter(r => r.id !== 'director').sort((a, b) => a.order - b.order).map(r => r.id)];
+  const bar = $('#chat-to'); if (!bar) return;
+  if (chat.to !== 'auto' && !ids.includes(chat.to)) chat.to = 'auto';
+  bar.innerHTML = `<span class="lbl">${t('to')}</span><button class="auto ${chat.to === 'auto' ? 'on' : ''}" onclick="setTo('auto')">${esc(t('auto'))}</button>` +
+    ids.map(id => `<button class="${chat.to === id ? 'on' : ''}" onclick="setTo(${arg(id)})">${av(id)}${esc(roleTitle(id))}</button>`).join('');
+  $('#chat-input').placeholder = t('placeholder', chat.to === 'auto' ? t('theTeam') : roleTitle(chat.to));
+}
+function setTo(id) { chat.to = id; try { localStorage.setItem('oc-to', id); } catch {} recipients(); $('#chat-input').focus(); }
+function bubble(from, html, extra = '') {
   const log = $('#chat-log'); if (!log) return null;
   const d = document.createElement('div');
   d.className = `bub ${from === 'you' ? 'you' : from === 'system' ? 'sys' : 'dir'}`;
-  d.innerHTML = from === 'director' ? `<div class="who-line">${av('director')}Director</div>${html}` : html;
+  d.innerHTML = from === 'you' || from === 'system' ? `${extra}${html}` : `<div class="who-line">${av(from)}${esc(roleTitle(from))}</div>${html}`;
   log.querySelector('.sugg')?.remove();
   log.appendChild(d); log.scrollTop = log.scrollHeight;
   return d;
 }
+function teamLine(e) {
+  let from = e.role, to = '', text = e.text;
+  const h = /^→\s*([a-z-]+):\s*(.*)$/.exec(e.text || '');
+  const task = /^New task for ([a-z-]+):\s*(.*)$/.exec(e.text || '');
+  if (e.type === 'handoff' && h) { to = h[1]; text = h[2]; }
+  else if (e.type === 'task' && task) { to = task[1]; text = task[2]; }
+  else if (e.type === 'task') { to = ''; }
+  const d = document.createElement('div');
+  d.className = 'team';
+  d.innerHTML = `${av(from)}<b>${esc(roleTitle(from))}</b>${to ? ` → ${av(to)}<b>${esc(roleTitle(to))}</b>` : ''}<span class="s">· ${esc(text)}</span>`;
+  if (e.path) d.onclick = () => openFile(e.path);
+  return d;
+}
+function addTeam(e) {
+  const key = e.ts + e.role + e.text;
+  if (chat.shownTeam.has(key)) return;
+  chat.shownTeam.add(key);
+  const log = $('#chat-log'); if (!log) return;
+  const line = teamLine(e);
+  if (chat.busy && chat.reply && chat.reply.parentNode === log) log.insertBefore(line, chat.reply);
+  else log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
 function chatSuggestions() {
   const setup = S && S.company.setup !== 'done';
-  const items = setup ? ['setup', 'What can you do for me?'] : ['status', 'What should I do today?', 'prospect 5', 'qualify', 'draft', 'followups'];
-  $('#chat-log').innerHTML = `<div class="sugg">${items.map(t => `<button onclick="chatSend(${arg(t)})">${esc(t)}</button>`).join('')}</div>`;
+  const items = t(setup ? 'sugSetup' : 'sugMain');
+  $('#chat-log').innerHTML = `<div class="sugg">${items.map(x => `<button onclick="chatSend(${arg(x)})">${esc(x)}</button>`).join('')}</div>`;
 }
 async function chatInit() {
   const r = await fetch('/api/chat'); chat.info = await r.json();
   const sel = $('#chat-engine'); if (!sel) return;
-  sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || '<option>no AI tool found</option>';
-  const log = $('#chat-log'); log.innerHTML = '';
-  if (chat.info.demo) { bubble('system', 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.'); $('#chat-input').disabled = true; $('#chat-send').disabled = true; return; }
+  sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || `<option>${t('noEngine')}</option>`;
+  recipients();
+  const log = $('#chat-log'); log.innerHTML = ''; chat.shownTeam = new Set();
+  if (chat.info.demo) { bubble('system', t('demoChat')); $('#chat-input').disabled = true; $('#chat-send').disabled = true; return; }
   const hist = chat.info.history.slice(-60);
-  if (!hist.length) chatSuggestions();
-  for (const m of hist) bubble(m.from, m.from === 'director' ? md(m.text) : esc(m.text));
+  if (!hist.length) { chatSuggestions(); }
+  else {
+    const since = Date.parse(hist[0].ts);
+    const team = S.events.filter(e => isTeam(e) && Date.parse(e.ts) >= since).map(e => ({ ...e, _team: true }));
+    const all = [...hist, ...team].sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
+    for (const m of all) {
+      if (m._team) { addTeam(m); continue; }
+      if (m.from === 'you') bubble('you', esc(m.text), m.to && m.to !== 'auto' ? `<div class="to-line">→ ${esc(roleTitle(m.to))}</div>` : '');
+      else if (m.from === 'system') bubble('system', esc(m.text === 'New conversation' ? t('newConvMarker') : m.text));
+      else bubble(m.from, md(m.text));
+    }
+  }
+  S.events.forEach(e => { if (isTeam(e)) chat.shownTeam.add(e.ts + e.role + e.text); });
   setBusy(chat.info.busy);
   const ta = $('#chat-input');
   ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } };
@@ -346,7 +507,7 @@ function setBusy(b) {
   chat.busy = b;
   if (!$('#chat-send')) return;
   $('#chat-send').style.display = b ? 'none' : ''; $('#chat-stop').style.display = b ? '' : 'none';
-  $('#chat-status').textContent = b ? 'working… (you can watch the Office tab)' : '';
+  $('#chat-status').textContent = b ? t('workingStatus') : '';
   $('#n-chat').textContent = b ? '●' : '';
 }
 async function chatSend(preset) {
@@ -354,13 +515,17 @@ async function chatSend(preset) {
   const ta = $('#chat-input');
   const text = (preset || ta.value).trim(); if (!text) return;
   ta.value = ''; ta.style.height = 'auto';
-  bubble('you', esc(text));
-  const b = bubble('director', '<div class="body"></div><div class="thinking">Working</div>');
-  const body = b.querySelector('.body'), think = b.querySelector('.thinking');
+  const to = chat.to;
+  bubble('you', esc(text), to !== 'auto' ? `<div class="to-line">→ ${esc(roleTitle(to))}</div>` : '');
+  let role = to === 'auto' ? 'director' : to;
+  let b = bubble(role, '<div class="body"></div><div class="thinking">…</div>');
+  chat.reply = b;
+  let body = b.querySelector('.body');
+  const think = () => b.querySelector('.thinking');
   setBusy(true);
   try {
-    const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text }) });
-    if (!r.ok || !r.body) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'The Director could not start.'); }
+    const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text, to, lang: LANG }) });
+    if (!r.ok || !r.body) { const e = await r.json().catch(() => ({})); throw new Error(e.error || t('couldNotStart')); }
     const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = '';
     for (;;) {
       const { value, done } = await reader.read(); if (done) break;
@@ -370,85 +535,103 @@ async function chatSend(preset) {
         const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue;
         const ev = JSON.parse(line);
         if (ev.type === 'tool') body.insertAdjacentHTML('beforeend', `<div class="tool">${esc(ev.text)}</div>`);
-        if (ev.type === 'text') body.insertAdjacentHTML('beforeend', `<div class="md">${md(ev.text)}</div>`);
+        if (ev.type === 'text') {
+          // A reply part that starts with [role] is spoken by that role: it gets its own bubble.
+          for (const part of String(ev.text).split(/\n(?=\s*\[[a-z-]+\])/)) {
+            const m = /^\s*\[([a-z-]+)\][ \t]*\n?/.exec(part);
+            let content = part;
+            if (m && S.roles.some(r => r.id === m[1])) {
+              content = part.slice(m[0].length);
+              if (m[1] !== role) {
+                const hasContent = body.textContent.trim();
+                think()?.remove();
+                if (!hasContent) b.remove();
+                role = m[1];
+                b = bubble(role, '<div class="body"></div><div class="thinking">…</div>'); chat.reply = b;
+                body = b.querySelector('.body');
+              }
+            }
+            if (content.trim()) body.insertAdjacentHTML('beforeend', `<div class="md">${md(content)}</div>`);
+          }
+        }
         if (ev.type === 'error') body.insertAdjacentHTML('beforeend', `<div class="err">${esc(ev.text)}</div>`);
         const log = $('#chat-log'); if (log) log.scrollTop = log.scrollHeight;
       }
     }
   } catch (e) { body.insertAdjacentHTML('beforeend', `<div class="err">${esc(e.message)}</div>`); }
-  think.remove(); setBusy(false); $('#chat-input')?.focus();
+  think()?.remove(); chat.reply = null; setBusy(false); $('#chat-input')?.focus();
 }
 async function chatStop() { await fetch('/api/chat/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); }
 async function chatEngine(id) { await fetch('/api/chat/engine', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ engine: id }) }); }
 async function chatNew() { if (chat.busy) return; await fetch('/api/chat/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); chatInit(); }
 
-const money = (x, c) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: c || 'EUR' }).format(x); } catch { return `${x} ${c}`; } };
+const money = (x, c) => { try { return new Intl.NumberFormat(LANG === 'fr' ? 'fr-FR' : undefined, { style: 'currency', currency: c || 'EUR' }).format(x); } catch { return `${x} ${c}`; } };
 let armed = '';
 function finance() {
   const D = S.finance || [];
   const sum = f => D.filter(f).reduce((s, d) => s + (d.totals?.gross || 0), 0);
   const cur = (D[0] && D[0].currency) || 'EUR';
-  const k = [['Drafts to issue', D.filter(d => d.status === 'draft').length], ['Quotes out', money(sum(d => d.type === 'quote' && d.status === 'issued'), cur)],
-    ['Invoices unpaid', money(sum(d => d.type === 'invoice' && d.status === 'issued'), cur)], ['Paid', money(sum(d => d.status === 'paid'), cur)]];
+  const k = [[t('k_toIssue'), D.filter(d => d.status === 'draft').length], [t('k_quotesOut'), money(sum(d => d.type === 'quote' && d.status === 'issued'), cur)],
+    [t('k_unpaid'), money(sum(d => d.type === 'invoice' && d.status === 'issued'), cur)], [t('k_paid'), money(sum(d => d.status === 'paid'), cur)]];
   const actions = d => {
     if (d.status === 'draft') return armed === d.id
-      ? `<button class="btn primary" onclick="finAct(${arg(d.id)},'issued',this)">Confirm: give it the next number</button><button class="btn" onclick="armed='';render()">Cancel</button>`
-      : `<button class="btn" onclick="armed=${arg(d.id)};render()">Issue</button>`;
-    if (d.status === 'issued' && d.type === 'invoice') return `<button class="btn" onclick="finAct(${arg(d.id)},'paid',this)">Mark paid</button><button class="btn" onclick="finAct(${arg(d.id)},'void',this)">Void</button>`;
-    if (d.status === 'issued' && d.type === 'quote') return `<button class="btn" onclick="finAct(${arg(d.id)},'accepted',this)">Accepted</button><button class="btn" onclick="finAct(${arg(d.id)},'declined',this)">Declined</button>`;
+      ? `<button class="btn primary" onclick="finAct(${arg(d.id)},'issued',this)">${t('confirmIssue')}</button><button class="btn" onclick="armed='';render()">${t('cancel')}</button>`
+      : `<button class="btn" onclick="armed=${arg(d.id)};render()">${t('issue')}</button>`;
+    if (d.status === 'issued' && d.type === 'invoice') return `<button class="btn" onclick="finAct(${arg(d.id)},'paid',this)">${t('markPaid')}</button><button class="btn" onclick="finAct(${arg(d.id)},'void',this)">${t('voidIt')}</button>`;
+    if (d.status === 'issued' && d.type === 'quote') return `<button class="btn" onclick="finAct(${arg(d.id)},'accepted',this)">${t('accepted')}</button><button class="btn" onclick="finAct(${arg(d.id)},'declined',this)">${t('declined')}</button>`;
     return '';
   };
-  return `${S.billingReady ? '' : '<div class="banner">Fill <code>workspace/company/billing.md</code> (legal name, address, VAT number, legal mentions) before issuing anything.</div>'}
+  return `${S.billingReady ? '' : `<div class="banner">${t('billingBanner')}</div>`}
   <div class="kpis">${k.map(([a, b]) => `<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
-  <div class="card" style="overflow:auto">${D.length ? `<table><tr><th>Document</th><th>Client</th><th class="num">Total</th><th>Status</th><th class="hide-sm">Dates</th><th></th></tr>
-  ${D.map(d => `<tr><td><b>${d.type === 'quote' ? 'Quote' : 'Invoice'}</b><div class="muted small">${esc(d.number || 'draft')}</div></td><td>${esc(d.client)}</td>
-    <td class="num"><b>${esc(money(d.totals?.gross || 0, d.currency))}</b><div class="muted small">${esc(money(d.totals?.net || 0, d.currency))} excl. VAT</div></td>
-    <td><span class="pill ${d.status === 'paid' || d.status === 'accepted' ? 'approved' : d.status === 'draft' ? 'draft' : d.status === 'void' || d.status === 'declined' ? 'rejected' : ''}">${esc(d.status)}</span></td>
-    <td class="hide-sm small muted">${esc([d.issue_date && 'issued ' + d.issue_date, d.due_date && 'due ' + d.due_date].filter(Boolean).join(' · ') || 'not issued')}</td>
-    <td style="white-space:nowrap"><a class="btn" href="/finance/${encodeURIComponent(d.id)}.html" target="_blank" rel="noopener">Open</a> ${actions(d)}</td></tr>`).join('')}</table>`
-  : '<div class="empty">No quote or invoice yet. In your AI\'s terminal, type <code>quote for &lt;client&gt;</code>.</div>'}</div>
-  <p class="muted small">The AI only prepares drafts. Issuing, payments and cancellations are your clicks, and numbers follow an unbroken sequence. Open a document and print it to PDF.</p>`;
+  <div class="card" style="overflow:auto">${D.length ? `<table><tr><th>${t('c_document')}</th><th>${t('c_client')}</th><th class="num">${t('c_total')}</th><th>${t('c_status')}</th><th class="hide-sm">${t('c_dates')}</th><th></th></tr>
+  ${D.map(d => `<tr><td><b>${d.type === 'quote' ? t('quote') : t('invoice')}</b><div class="muted small">${esc(d.number || t('draftNo'))}</div></td><td>${esc(d.client)}</td>
+    <td class="num"><b>${esc(money(d.totals?.gross || 0, d.currency))}</b><div class="muted small">${esc(money(d.totals?.net || 0, d.currency))} ${t('exclVat')}</div></td>
+    <td><span class="pill ${d.status === 'paid' || d.status === 'accepted' ? 'approved' : d.status === 'draft' ? 'draft' : d.status === 'void' || d.status === 'declined' ? 'rejected' : ''}">${esc(st(d.status))}</span></td>
+    <td class="hide-sm small muted">${esc([d.issue_date && t('issuedOn', d.issue_date), d.due_date && t('dueOn', d.due_date)].filter(Boolean).join(' · ') || t('notIssued'))}</td>
+    <td style="white-space:nowrap"><a class="btn" href="/finance/${encodeURIComponent(d.id)}.html" target="_blank" rel="noopener">${t('open')}</a> ${actions(d)}</td></tr>`).join('')}</table>`
+  : `<div class="empty">${t('noDocs')}</div>`}</div>
+  <p class="muted small">${t('financeFoot')}</p>`;
 }
 async function finAct(id, status, btn) {
   btn.disabled = true;
   const r = await fetch(`/api/finance/${id}/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) });
   armed = '';
-  if (!r.ok) { const e = await r.json().catch(() => ({})); $('#main').insertAdjacentHTML('afterbegin', `<div class="banner">${esc(e.error || 'Could not update this document.')}</div>`); btn.disabled = false; return; }
+  if (!r.ok) { const e = await r.json().catch(() => ({})); $('#main').insertAdjacentHTML('afterbegin', `<div class="banner">${esc(e.error || t('updateFailed'))}</div>`); btn.disabled = false; return; }
   load();
 }
 function board() {
-  return `<div class="kanban">${['Todo', 'Doing', 'Review', 'Done'].map(c => `<div class="col"><h3>${c}<span>${S.board[c].length}</span></h3>
-    ${S.board[c].map(t => `<div class="task">${esc(t.text)}${t.role ? `<div class="o">${av(t.role)}${esc(roleTitle(t.role))}</div>` : ''}</div>`).join('') || '<div class="muted small" style="padding:4px">Empty</div>'}</div>`).join('')}</div>`;
+  return `<div class="kanban">${['Todo', 'Doing', 'Review', 'Done'].map(c => `<div class="col"><h3>${t('col_' + c)}<span>${S.board[c].length}</span></h3>
+    ${S.board[c].map(x => `<div class="task">${esc(x.text)}${x.role ? `<div class="o">${av(x.role)}${esc(roleTitle(x.role))}</div>` : ''}</div>`).join('') || `<div class="muted small" style="padding:4px">${t('empty')}</div>`}</div>`).join('')}</div>`;
 }
 function messages() {
   return `<div class="card">${S.messages.length ? S.messages.map(m => `<div class="msg"><div class="route">${av(m.from)}<b style="color:var(--ink)">${esc(roleTitle(m.from))}</b> → ${av(m.to)}<b style="color:var(--ink)">${esc(roleTitle(m.to))}</b><span style="margin-left:auto">${m.created ? ago(m.created) : ''}</span></div>
     <div class="s">${esc(m.subject)}</div><div class="x md">${md(m.body)}</div>${m.link ? `<div class="f ev" style="padding:0;border:0"><span class="f" onclick="openFile(${arg(m.link)})">${esc(m.link.replace(/^(workspace|\.demo)\//, ''))}</span></div>` : ''}</div>`).join('')
-    : '<div class="empty">When one role hands work to another, the note appears here.</div>'}</div>`;
+    : `<div class="empty">${t('noHandoffs')}</div>`}</div>`;
 }
 function files() {
   return `<div class="card files">${S.files.length ? S.files.map(f => `<div class="fr" onclick="openFile(${arg(f.path)})"><span class="p">${esc(f.path.replace(/^(workspace|\.demo)\//, ''))}</span><span class="muted small" style="white-space:nowrap">${f.author ? esc(roleTitle(f.author)) + ' · ' : ''}${ago(f.mtime)}</span></div>`).join('')
-    : '<div class="empty">No files yet.</div>'}</div>`;
+    : `<div class="empty">${t('noFiles')}</div>`}</div>`;
 }
 
-const VIEWS = { office: ['Office', 'Who is doing what, right now', office], chat: ['Chat', 'Talk to the Director: it runs the team for you', chatView], pipeline: ['Pipeline', 'Every lead is sourced. Scores are computed by a script, not guessed.', pipeline],
-  outreach: ['Outreach', 'Messages written by the team, waiting for your call', outreach],
-  finance: ['Finance', 'Quotes and invoices: the team drafts, you issue', finance], board: ['Board', 'Tasks across the company', board],
-  messages: ['Handoffs', 'How the roles pass work to each other', messages], files: ['Files', 'Everything the company has produced', files] };
+const VIEWS = { office, chat: chatView, pipeline, outreach, finance, board, messages, files };
 
 function render(fresh = []) {
   if (!S) return;
-  const name = S.company.name && S.company.name !== 'Your company' ? S.company.name : 'Your company';
-  $('#co').textContent = name; document.title = `${name} · Live Office`;
-  $('#engine').textContent = S.session.engine ? `Running on ${ENGINES[S.session.engine] || S.session.engine}` : 'No AI connected';
-  $('#since').textContent = S.session.started ? `since ${new Date(S.session.started).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '';
+  const name = S.company.name && S.company.name !== 'Your company' ? S.company.name : (LANG === 'fr' ? 'Votre entreprise' : 'Your company');
+  $('#co').textContent = name; document.title = `${name} · ${t('liveOffice')}`;
+  const ENG = { claude: 'Claude Code', codex: 'Codex (ChatGPT)', opencode: 'OpenCode', agy: 'Antigravity (Gemini)', demo: LANG === 'fr' ? 'Démo (sans IA)' : 'Demo replay (no AI)' };
+  $('#engine').textContent = S.session.engine ? t('runningOn', ENG[S.session.engine] || S.session.engine) : t('noAI');
+  $('#since').textContent = S.session.started ? t('since', new Date(S.session.started).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
   $('#n-pipeline').textContent = S.leads.length || ''; $('#n-outreach').textContent = S.drafts.filter(d => d.status === 'draft').length || '';
   $('#n-finance').textContent = (S.finance || []).filter(d => d.status === 'draft').length || '';
   $('#n-board').textContent = (S.board.Todo.length + S.board.Doing.length) || ''; $('#n-messages').textContent = S.messages.length || ''; $('#n-files').textContent = S.files.length || '';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + view));
-  if (view === 'chat' && $('#chat-log')) return; // the conversation stays on screen while the office updates
-  const [t, sub, fn] = VIEWS[view];
+  if (view === 'chat' && $('#chat-log')) { // keep the conversation on screen, add what the team says to each other
+    if (!chat.info?.demo && chat.info?.history?.length !== undefined) S.events.forEach(e => { if (isTeam(e)) addTeam(e); });
+    return;
+  }
   const scroll = document.querySelector('.feed')?.scrollTop || 0;
-  $('#main').innerHTML = `<header class="top"><div><h1>${t}</h1><div class="sub">${sub}</div></div></header>${fn(fresh.length > 0)}`;
+  $('#main').innerHTML = `<header class="top"><div><h1>${t('v_' + view)}</h1><div class="sub">${t('s_' + view)}</div></div></header>${VIEWS[view](fresh.length > 0)}`;
   const feed = document.querySelector('.feed'); if (feed) feed.scrollTop = scroll;
   if (view === 'chat') chatInit();
 }
@@ -457,7 +640,7 @@ function render(fresh = []) {
 async function review(id, status, btn) {
   btn.disabled = true;
   const r = await fetch(`/api/drafts/${id}/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) });
-  if (!r.ok) { btn.disabled = false; $('#main').insertAdjacentHTML('afterbegin', '<div class="banner">Could not update this draft.</div>'); return; }
+  if (!r.ok) { btn.disabled = false; $('#main').insertAdjacentHTML('afterbegin', `<div class="banner">${t('updateFailed')}</div>`); return; }
   load();
 }
 async function openFile(p) {
@@ -470,17 +653,18 @@ async function openFile(p) {
 }
 async function openLead(id) {
   const l = S.leads.find(x => x.id === id); if (!l) return;
-  const fields = [['Website', l.website && `<a href="${esc(/^https?:/.test(l.website) ? l.website : 'https://' + l.website)}" target="_blank" rel="noopener">${esc(l.website)}</a>`], ['Registry id', esc(l.registry_id)],
-    ['Place', esc([l.city, l.country].filter(Boolean).join(', '))], ['Industry', esc(l.industry)], ['Employees', esc(l.employees)],
-    ['Contact', esc([l.contact_name, l.contact_role].filter(Boolean).join(', '))], ['Channel', esc(l.contact_channel)],
-    ['Contact source', (l.contact_source.match(/https?:\/\/\S+/g) || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join('<br>')],
-    ['Score', `${esc(l.score)} <span class="muted">(${esc(l.score_why)})</span>`], ['Status', esc(l.status)], ['Next action', esc([l.next_action, l.next_action_date].filter(Boolean).join(' · '))],
-    ['Sources', (l.sources.match(/https?:\/\/\S+/g) || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join('<br>')]].filter(([, v]) => v);
+  const links = v => (String(v || '').match(/https?:\/\/\S+/g) || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join('<br>');
+  const fields = [[t('l_website'), l.website && `<a href="${esc(/^https?:/.test(l.website) ? l.website : 'https://' + l.website)}" target="_blank" rel="noopener">${esc(l.website)}</a>`], [t('l_registry'), esc(l.registry_id)],
+    [t('l_place'), esc([l.city, l.country].filter(Boolean).join(', '))], [t('l_industry'), esc(l.industry)], [t('l_employees'), esc(l.employees)],
+    [t('l_contact'), esc([l.contact_name, l.contact_role].filter(Boolean).join(', '))], [t('l_channel'), esc(l.contact_channel)],
+    [t('l_contactSource'), links(l.contact_source)],
+    [t('l_score'), `${esc(l.score)} <span class="muted">(${esc(l.score_why)})</span>`], [t('l_status'), esc(st(l.status))], [t('l_next'), esc([l.next_action, l.next_action_date].filter(Boolean).join(' · '))],
+    [t('l_sources'), links(l.sources)]].filter(([, v]) => v);
   let account = '';
   const acc = await fetch(`/api/file?path=${encodeURIComponent(`workspace/prospecting/accounts/${id}.md`)}`);
   if (acc.ok) account = md((await acc.json()).content);
   $('#d-path').textContent = l.company;
-  $('#d-body').innerHTML = `<dl class="meta">${fields.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${account || '<p class="muted">No account file yet.</p>'}`;
+  $('#d-body').innerHTML = `<dl class="meta">${fields.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${account || `<p class="muted">${t('noAccount')}</p>`}`;
   $('#drawer').classList.add('open');
 }
 function closeDrawer() { $('#drawer').classList.remove('open'); }
@@ -491,14 +675,18 @@ function route() { view = (location.hash.slice(1) in VIEWS) ? location.hash.slic
 window.addEventListener('hashchange', route);
 function connect() {
   const es = new EventSource('/api/stream');
-  es.onopen = () => { $('#live').classList.add('on'); $('#live-t').textContent = 'Live'; };
-  es.onerror = () => { $('#live').classList.remove('on'); $('#live-t').textContent = 'Reconnecting…'; };
+  es.onopen = () => { $('#live').classList.add('on'); $('#live-t').textContent = t('live'); };
+  es.onerror = () => { $('#live').classList.remove('on'); $('#live-t').textContent = t('reconnecting'); };
   es.addEventListener('change', e => load(JSON.parse(e.data).changed || []));
 }
-// ?live=0 renders a snapshot without the live connection (used for screenshots).
+// ?live=0 renders a snapshot without the live connection (used for screenshots). ?lang=fr|en forces a language.
 const LIVE = new URLSearchParams(location.search).get('live') !== '0';
-load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); if (LIVE) connect(); else { $('#live').classList.add('on'); $('#live-t').textContent = 'Live'; } });
+{ const l = new URLSearchParams(location.search).get('lang'); if (l === 'fr' || l === 'en') LANG = l; }
+applyStatic();
+$('#live-t').textContent = t('connecting');
+load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); if (LIVE) connect(); else { $('#live').classList.add('on'); $('#live-t').textContent = t('live'); } });
 setInterval(() => { if (view === 'office' && S) render(); }, 30000);
+
 </script>
 </body>
 </html>

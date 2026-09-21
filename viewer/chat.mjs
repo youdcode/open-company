@@ -20,6 +20,43 @@ const CLAUDE_TOOLS = [
 
 const short = s => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 140);
 
+// The roles of the company (roles/*.md), used to route a chat message to one of them.
+export function roleIds() {
+  try { return fs.readdirSync(path.join(ROOT, 'roles')).filter(f => f.endsWith('.md')).map(f => f.slice(0, -3)); } catch { return ['director']; }
+}
+function roleTitle(id) {
+  const m = /^title:\s*(.+)$/m.exec(readText(path.join(ROOT, 'roles', `${id}.md`)));
+  return m ? m[1].trim() : id;
+}
+
+// What the AI receives in addition to the owner's words: who should answer, in which language,
+// and how to show which role is speaking and how they hand work to each other.
+export function routingNote(to = 'auto', lang = 'en') {
+  const route = to === 'auto'
+    ? 'The owner wrote to the company: as the Director (CEO), decide which role should handle it. If it is work for a role, hand it off with tools/handoff.mjs (from director to that role, 3 lines max) and let that role do the work and answer.'
+    : to === 'director'
+      ? 'The owner is talking directly to you, the CEO (director).'
+      : `The owner is talking directly to the ${roleTitle(to)} (${to}): answer as that role, following roles/${to}.md (use its subagent if your tool has one). If another role is needed, hand off with tools/handoff.mjs.`;
+  const language = lang === 'fr'
+    ? 'Reply in French, the owner\'s language, and write the board tasks, handoffs and log lines of this request in French too.'
+    : 'Reply in English.';
+  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
+}
+
+// "[marketer]\nHello\n[director]\nDone" -> [{role: 'marketer', text: 'Hello'}, {role: 'director', text: 'Done'}]
+export function splitByRole(text, fallback = 'director') {
+  const ids = roleIds();
+  const parts = [];
+  let role = fallback, buf = [];
+  const flush = () => { const t = buf.join('\n').trim(); if (t) parts.push({ role, text: t }); buf = []; };
+  for (const line of String(text).split('\n')) {
+    const m = /^\s*\[([a-z-]+)\][ \t]*(.*)$/.exec(line);
+    if (m && ids.includes(m[1])) { flush(); role = m[1]; if (m[2].trim()) buf.push(m[2]); } else buf.push(line);
+  }
+  flush();
+  return parts;
+}
+
 export const CHAT_ENGINES = {
   claude: {
     name: 'Claude Code', bin: 'claude',
@@ -99,20 +136,28 @@ let running = null;
 export const stopChat = () => { if (running) { running.kill('SIGTERM'); return true; } return false; };
 
 // Runs one message. `emit` receives {type: text|tool|error|done, text}.
-export function sendChat(message, emit) {
-  if (running) throw new Error('the Director is still working on your previous message');
+// Throws before anything starts, so the server can answer with a clear error.
+export function checkChat(message, to = 'auto') {
+  if (running) throw new Error('the team is still working on your previous message');
+  if (!String(message || '').trim()) throw new Error('empty message');
+  if (to !== 'auto' && !roleIds().includes(to)) throw new Error(`unknown role "${to}"`);
+  if (!chatInfo().engine) throw new Error('no AI tool found: install Claude Code, Codex or OpenCode, then log in once in a terminal');
+}
+
+export function sendChat(message, emit, { to = 'auto', lang = 'en' } = {}) {
+  checkChat(message, to);
   const text = String(message || '').trim();
-  if (!text) throw new Error('empty message');
   const { engine } = chatInfo();
   if (!engine) throw new Error('no AI tool found: install Claude Code, Codex or OpenCode, then log in once in a terminal');
   const E = CHAT_ENGINES[engine];
   const st = readState();
   const sid = st.sessions?.[engine];
   fs.mkdirSync(path.dirname(HISTORY), { recursive: true });
-  fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: 'you', text }) + '\n');
-  logEvent('you', 'chat', `You: ${short(text)}`);
+  fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: 'you', to, text }) + '\n');
+  logEvent('you', 'chat', to === 'auto' ? `You: ${short(text)}` : `You → ${to}: ${short(text)}`);
+  const prompt = text + routingNote(to, lang);
 
-  let argv = E.promptAsArg ? E.args(sid, text) : E.args(sid);
+  let argv = E.promptAsArg ? E.args(sid, prompt) : E.args(sid);
   // On Windows the AI tools are .cmd files, which only start through the shell: quote every argument.
   const win = process.platform === 'win32';
   if (win) argv = argv.map(a => /[\s"^&|<>()%!*]/.test(a) ? `"${String(a).replace(/"/g, "'").replace(/%/g, '%%')}"` : a);
@@ -120,7 +165,7 @@ export function sendChat(message, emit) {
     cwd: ROOT, env: { ...process.env, OPEN_COMPANY_NO_OPEN: '1' }, stdio: ['pipe', 'pipe', 'pipe'], shell: win,
   });
   running = child;
-  if (!E.promptAsArg) child.stdin.end(text); else child.stdin.end();
+  if (!E.promptAsArg) child.stdin.end(prompt); else child.stdin.end();
 
   const replies = [];
   let buf = '', errText = '';
@@ -148,7 +193,8 @@ export function sendChat(message, emit) {
   child.on('close', code => {
     running = null;
     const reply = replies.join('\n\n').trim();
-    if (reply) fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: 'director', engine, text: reply }) + '\n');
+    for (const part of reply ? splitByRole(reply, to === 'auto' ? 'director' : to) : [])
+      fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: part.role, engine, text: part.text }) + '\n');
     if (!reply && code !== 0) {
       const hint = /log ?in|auth|unauthori|credential/i.test(errText) ? `Log in once: open a terminal in this folder and run "${E.bin}".` : short(errText.split('\n').filter(Boolean).pop() || `the AI tool stopped (code ${code})`);
       emit({ type: 'error', text: hint });

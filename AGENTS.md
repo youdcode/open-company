@@ -52,11 +52,17 @@ If your tool does not load skills automatically, open the SKILL.md file and foll
 | consultant | `roles/consultant.md` | `workspace/departments/consulting/` | standard |
 | auditor | `roles/auditor.md` | `workspace/departments/audit/` | strong |
 
-**How to run a role.** If your tool has a subagent with the role's name, delegate to it with a
-precise brief: goal, input files (paths), output file (path), done criteria, and a budget
-(for example "max 10 web searches"). If not, read `roles/<role>.md`, do the task as that role,
-then come back to director mode. Either way, the role logs its start and end, moves its board
-card, and finishes with a handoff.
+**How to run a role.** First write the brief as a handoff (`tools/handoff.mjs --from director --to <role>`),
+so the owner sees who got the work. If your tool has a subagent with the role's name, delegate to it
+with that brief: goal, input files (paths), output file (path), done criteria, and a budget (for
+example "max 10 web searches"). If not, read `roles/<role>.md`, do the task as that role, then come
+back to director mode. Either way, the role logs its start and end, moves its board card, and
+finishes with a handoff back.
+
+**The Chat tab.** The owner can write to the whole company or to one role from the live office. Each
+message ends with a note in parentheses saying who should answer and in which language: follow it.
+Start each part of the reply with the id of the role speaking in brackets on its own line
+(`[director]`, `[marketer]`...), so the page shows who talks. The owner calls you "the CEO".
 
 ## How the company talks (the protocol)
 

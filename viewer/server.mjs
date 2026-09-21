@@ -13,7 +13,7 @@ import {
 import { parseBoard } from '../tools/board.mjs';
 import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
 import { listDocs, setDocStatus, htmlOf, billing } from '../tools/invoice.mjs';
-import { chatInfo, sendChat, setEngine, newConversation, stopChat } from './chat.mjs';
+import { chatInfo, sendChat, checkChat, setEngine, newConversation, stopChat } from './chat.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
 const HTML = path.join(ROOT, 'viewer', 'index.html');
@@ -196,8 +196,9 @@ export function startServer(port = DEFAULT_PORT) {
           if (url.pathname === '/api/chat/new') { newConversation(); return json(res, 200, { ok: true }); }
           if (url.pathname === '/api/chat/stop') return json(res, 200, { stopped: stopChat() });
           if (url.pathname === '/api/chat') {
+            checkChat(data.message, data.to || 'auto');
             res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' });
-            sendChat(data.message, ev => { res.write(JSON.stringify(ev) + '\n'); if (ev.type === 'done') res.end(); });
+            sendChat(data.message, ev => { res.write(JSON.stringify(ev) + '\n'); if (ev.type === 'done') res.end(); }, { to: data.to || 'auto', lang: data.lang === 'fr' ? 'fr' : 'en' });
             return;
           }
         } catch (e) {

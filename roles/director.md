@@ -1,6 +1,6 @@
 ---
 name: director
-title: Director
+title: CEO
 department: Management
 order: 0
 tier: strong

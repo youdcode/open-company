@@ -53,8 +53,10 @@ cd open-company
 ./start            # Windows: start.cmd
 ```
 
-`./start` opens the live office at http://localhost:4747 with a **Chat** tab: you talk to the Director
-there, and watch the team work in the other tabs. The AI tools installed on your computer are listed in
+`./start` opens the live office at http://localhost:4747 with a **Chat** tab. Write to "the right
+person" and the CEO decides who handles it, or pick one role (Marketing, Sales, Finance...) and talk to
+it directly. You see the roles hand work to each other in the conversation, and each answer is signed
+by the role that gives it. The page is in English or French (switch at the bottom left). The AI tools installed on your computer are listed in
 the chat (Claude Code, Codex, OpenCode), and you can switch between them. On the first run, click
 `setup`: the Director interviews you for a few minutes. Then you can type:
 
@@ -107,7 +109,7 @@ are enforced by scripts, and why you approve everything. Reports from people tes
 A local web page that shows:
 
 - **Office**: the organization chart, who is working right now, and a live activity feed
-- **Chat**: talk to the Director; its actions appear as they happen (the only tab that uses your AI)
+- **Chat**: talk to the whole team or to one role; handoffs between roles and each action appear as they happen (the only tab that uses your AI)
 - **Pipeline**: every lead with its score, signals, next action and sources
 - **Outreach**: drafted messages with Approve and Reject buttons
 - **Finance**: quotes and invoices; you issue them (which gives the next number), mark them paid, print to PDF
