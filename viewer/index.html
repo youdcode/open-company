@@ -142,6 +142,9 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .dirs{border-bottom:1px solid var(--line);padding:10px 14px;display:none;flex-direction:column;gap:8px;background:var(--soft)}
 .dirs.open{display:flex}.dirs .row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:12.5px}
 .dirs input{flex:1;font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.quick{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 0;align-items:center}.quick .lbl{font-size:12px;color:var(--muted);margin-right:2px}
+.quick button{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:4px 10px;border-radius:999px;font-size:12.5px;font-family:var(--mono)}
+.quick button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-family:var(--font);font-weight:600}
 .bub .to-line{font-size:11px;opacity:.7;margin-bottom:2px}
 @media (max-width:1100px){.roles{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
@@ -189,7 +192,7 @@ const I18N = {
     s_messages: 'How the roles pass work to each other', s_files: 'Everything the company has produced',
     demoBanner: '<b>Demo mode.</b> A fictional company and fictional leads, replayed by a script. No AI is running and nothing is real. Launch your own company with <code>./start</code>.',
     noWs: 'The workspace does not exist yet. Launch the company with <code>./start</code>.',
-    notSetup: 'Your company is not set up yet. Open the <a href="#chat">Chat</a> and click <code>setup</code>: the CEO will interview you for a few minutes.',
+    notSetup: 'Your company is not set up yet. The CEO will ask you a few questions. <a class="btn primary" href="#chat" onclick="pendingSend=\'setup\'">Set up the company</a>',
     k_leads: 'Leads', k_hot: 'Hot leads', k_drafts: 'Drafts to review', k_due: 'Follow-ups due',
     waiting: 'Waiting for work', working: 'Working', idle: 'Idle', organization: 'Organization', liveActivity: 'Live activity', events: n => `${n} events`,
     nothingYet: 'Nothing yet. Activity appears here the second an agent does something.', talkBtn: 'Talk to the team',
@@ -215,6 +218,7 @@ const I18N = {
     demoChat: 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.', couldNotStart: 'The team could not start.',
     noEngine: 'no AI tool found', sugSetup: ['setup', 'What can you do for me?'], sugMain: ['status', 'What should I do today?', 'prospect 5', 'qualify', 'draft', 'followups'],
     newConvMarker: 'New conversation',
+    setupNow: 'Set up the company', quick: 'Shortcuts', setupPending: 'Your company is not set up yet:',
     dirs: n => `Readable folders${n ? ` (${n})` : ''}`, dirsHint: 'The team can read these folders, never write in them. What it reads is sent to your AI tool, like everything it works on.',
     dirAdd: 'Add', dirPh: 'Full path of a folder, for example /Users/you/Documents/my-company', dirNone: 'No folder yet: the team only reads this project.', remove: 'Remove',
   },
@@ -228,7 +232,7 @@ const I18N = {
     s_messages: 'Comment les rôles se passent le travail', s_files: "Tout ce que l'entreprise a produit",
     demoBanner: "<b>Mode démo.</b> Une entreprise et des prospects fictifs, rejoués par un script. Aucune IA ne tourne et rien n'est réel. Lancez votre propre entreprise avec <code>./start</code>.",
     noWs: "L'espace de travail n'existe pas encore. Lancez l'entreprise avec <code>./start</code>.",
-    notSetup: "Votre entreprise n'est pas encore configurée. Ouvrez le <a href=\"#chat\">Chat</a> et cliquez sur <code>setup</code> : le CEO vous pose quelques questions.",
+    notSetup: "Votre entreprise n'est pas encore configurée. Le CEO va vous poser quelques questions. <a class=\"btn primary\" href=\"#chat\" onclick=\"pendingSend='setup'\">Configurer l'entreprise</a>",
     k_leads: 'Prospects', k_hot: 'Prospects chauds', k_drafts: 'Messages à relire', k_due: 'Relances du jour',
     waiting: 'En attente de travail', working: 'Au travail', idle: 'Inactif', organization: 'Organisation', liveActivity: 'Activité en direct', events: n => `${n} événements`,
     nothingYet: "Rien pour l'instant. L'activité apparaît ici dès qu'un agent fait quelque chose.", talkBtn: "Parler à l'équipe",
@@ -254,6 +258,7 @@ const I18N = {
     demoChat: "Le chat est désactivé en mode démo : rien n'est réel ici. Lancez votre propre entreprise avec <code>./start</code>.", couldNotStart: "L'équipe n'a pas pu démarrer.",
     noEngine: 'aucune IA trouvée', sugSetup: ['setup', 'Que pouvez-vous faire pour moi ?'], sugMain: ['status', "Que dois-je faire aujourd'hui ?", 'prospect 5', 'qualify', 'draft', 'followups'],
     newConvMarker: 'Nouvelle conversation',
+    setupNow: "Configurer l'entreprise", quick: 'Raccourcis', setupPending: "Votre entreprise n'est pas encore configurée :",
     dirs: n => `Dossiers lisibles${n ? ` (${n})` : ''}`, dirsHint: "L'équipe peut lire ces dossiers, jamais y écrire. Ce qu'elle lit est envoyé à votre outil d'IA, comme tout ce sur quoi elle travaille.",
     dirAdd: 'Ajouter', dirPh: "Chemin complet d'un dossier, par exemple /Users/vous/Documents/mon-entreprise", dirNone: "Aucun dossier : l'équipe ne lit que ce projet.", remove: 'Retirer',
   },
@@ -433,6 +438,7 @@ function chatView() {
     <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
     <div class="dirs" id="dirs"></div>
     <div class="chat-log" id="chat-log"></div>
+    <div class="quick" id="chat-quick"></div>
     <div class="to" id="chat-to"></div>
     <div class="composer"><textarea id="chat-input" rows="1"></textarea>
     <button class="btn primary" id="chat-send" onclick="chatSend()">${t('send')}</button><button class="btn" id="chat-stop" style="display:none" onclick="chatStop()">${t('stop')}</button></div></div>
@@ -445,6 +451,14 @@ function recipients() {
   bar.innerHTML = `<span class="lbl">${t('to')}</span><button class="auto ${chat.to === 'auto' ? 'on' : ''}" onclick="setTo('auto')">${esc(t('auto'))}</button>` +
     ids.map(id => `<button class="${chat.to === id ? 'on' : ''}" onclick="setTo(${arg(id)})">${av(id)}${esc(roleTitle(id))}</button>`).join('');
   $('#chat-input').placeholder = t('placeholder', chat.to === 'auto' ? t('theTeam') : roleTitle(chat.to));
+}
+let pendingSend = '';
+function renderQuick() {
+  const q = $('#chat-quick'); if (!q) return;
+  if (chat.info?.demo) { q.innerHTML = ''; return; }
+  if (S.company.setup !== 'done') { q.innerHTML = `<span class="lbl">${t('setupPending')}</span><button class="primary" onclick="chatSend('setup')">${t('setupNow')}</button>`; return; }
+  const items = ['status', 'prospect 5', 'qualify', 'draft', 'followups', 'replies', 'export'];
+  q.innerHTML = `<span class="lbl">${t('quick')}</span>` + items.map(x => `<button onclick="chatSend(${arg(x)})">${esc(x)}</button>`).join('');
 }
 function renderDirs() {
   const d = chat.info?.readDirs || [];
@@ -505,7 +519,7 @@ async function chatInit() {
   const r = await fetch('/api/chat'); chat.info = await r.json();
   const sel = $('#chat-engine'); if (!sel) return;
   sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || `<option>${t('noEngine')}</option>`;
-  recipients(); renderDirs();
+  recipients(); renderDirs(); renderQuick();
   const log = $('#chat-log'); log.innerHTML = ''; chat.shownTeam = new Set();
   if (chat.info.demo) { bubble('system', t('demoChat')); $('#chat-input').disabled = true; $('#chat-send').disabled = true; return; }
   const hist = chat.info.history.slice(-60);
@@ -523,6 +537,7 @@ async function chatInit() {
   }
   S.events.forEach(e => { if (isTeam(e)) chat.shownTeam.add(e.ts + e.role + e.text); });
   setBusy(chat.info.busy);
+  if (pendingSend && !chat.info.busy) { const x = pendingSend; pendingSend = ''; setTimeout(() => chatSend(x), 0); }
   const ta = $('#chat-input');
   ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } };
   ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(180, ta.scrollHeight) + 'px'; };
@@ -653,6 +668,7 @@ function render(fresh = []) {
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + view));
   if (view === 'chat' && $('#chat-log')) { // keep the conversation on screen, add what the team says to each other
     if (!chat.info?.demo && chat.info?.history?.length !== undefined) S.events.forEach(e => { if (isTeam(e)) addTeam(e); });
+    renderQuick();
     return;
   }
   const scroll = document.querySelector('.feed')?.scrollTop || 0;

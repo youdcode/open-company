@@ -1,6 +1,6 @@
 {
   "name": "open-company",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A company that runs in a folder: AI roles for prospecting, sales and operations, a live office in your browser, and the AI you already pay for.",
   "type": "module",
   "scripts": {
