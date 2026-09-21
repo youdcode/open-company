@@ -33,6 +33,10 @@ a useful resource), is shorter than the first message, and never guilt-trips. Ma
 set `next_action` to "close the loop" or status `lost`.
 Save with `node tools/drafts.mjs new <lead-id> --followup ...`.
 
+## Replies
+When the human drops reply emails in `workspace/prospecting/inbox/`, run `node tools/replies.mjs --as sales`
+(skill replies). A reply asking to stop is final: the script marks the lead `do_not_contact`.
+
 ## Rules
 - Never draft for `do_not_contact`.
 - If a lead replied, set its status to `replied` and ask the Director before writing anything.

@@ -26,6 +26,11 @@ If the human's first message is just `start`, that is the signal to do the steps
 | `qualify` | Find dated buying signals and a public contact route, then score | qualify |
 | `draft` | Write first messages for hot and warm leads | draft-outreach |
 | `followups` | Draft today's follow-ups | follow-ups |
+| `replies` | Read the replies dropped in `workspace/prospecting/inbox/` | replies |
+| `brief <company>` | One-page brief before a meeting | meeting-brief |
+| `proposal <company>` | Proposal after a meeting, with its quote | proposal |
+| `quote for <client>` / `invoice <client>` | Quote or invoice draft with exact totals | quote-invoice |
+| `one-pager <segment>` | One-page presentation of the offer | one-pager |
 | `status` | Pipeline and board summary in 6 lines | (you) |
 | `sprint "<goal>"` | The whole company works on one goal | sprint |
 | `export` | Run `node tools/export.mjs` for approved messages | (you) |
@@ -80,8 +85,9 @@ Everything goes through files, so the live page shows it and any AI tool can fol
 4. **No scraping** of LinkedIn or of any site whose terms forbid it. You may give the human the URL of
    a public profile found through a normal web search.
 5. **Nothing leaves the company without the human.** Nothing is sent, posted, paid or signed.
-   Outreach is: draft, then human approval in the live page, then export to a CSV. Invoices and quotes
-   are drafts.
+   Outreach is: draft, then human approval in the live page, then export to a CSV. Quotes and invoices
+   are drafts made with `tools/invoice.mjs`; only the human issues them (Finance tab), which gives them
+   their number. Never compute totals yourself and never write legal mentions.
 6. **Opt-outs are final.** A lead with status `do_not_contact` is never drafted again.
 7. **Minimal personal data**: name, job title, professional channel. No birth dates, home addresses or
    personal social accounts. Prospect data stays in `workspace/`, which is never committed.
@@ -104,8 +110,13 @@ The human's AI subscription has usage limits shared with everything else they do
 ## Web research
 
 - Use your tool's web search and page fetch.
-- French companies: `node tools/registry-fr.mjs --q "<keywords>" [--naf <code>] [--dept <nn>] [--size 11,12]`
-  (official registry, free, returns a source URL per company).
+- Official company registers (free, a source URL per company, birth dates dropped):
+  - France: `node tools/registry-fr.mjs --q "<keywords>" [--naf <code>] [--dept <nn>] [--size 11,12]`
+  - Norway: `node tools/registry-no.mjs --q "<name>" [--nace 86.950] [--min-employees 5] [--leaders]`
+  - United Kingdom: `node tools/registry-uk.mjs --q "<name>" [--sic 86900] [--location Leeds] [--officers]`
+    (needs a free key in `workspace/.env`; if missing, tell the human how to get it, do not ask for it in the chat)
+- If the human configured a search source such as Perplexity (see `docs/search-sources.md`), use it
+  for research; it is paid per query, so batch questions.
 - Prefer primary sources: the company's own site, official registries, press releases, job posts,
   reputable press. Record the URL of the page you actually read, never a search results page.
 
@@ -114,13 +125,14 @@ The human's AI subscription has usage limits shared with everything else they do
 ```
 AGENTS.md            this manual (the Director)
 roles/               one brief per role (the source of truth for all AI tools)
-.agents/skills/      the playbooks (setup, prospect, qualify, draft-outreach, follow-ups, sprint)
+.agents/skills/      the playbooks (setup, prospect, qualify, draft-outreach, follow-ups, replies,
+                     meeting-brief, proposal, quote-invoice, one-pager, sprint)
 tools/               scripts that enforce the rules and write the shared files
 viewer/              the live page (reads files, never calls an AI)
 templates/           starting files and document templates
 workspace/           the company's private data (created on first run, never committed)
-  company/           profile.md
-  prospecting/       icp.md, leads.csv, accounts/, drafts/, exports/
+  company/           profile.md, billing.md (legal details for quotes and invoices)
+  prospecting/       icp.md, leads.csv, accounts/, drafts/, exports/, inbox/ (reply .eml files)
   org/               board.md, journal.md, messages/, events.jsonl
   departments/       strategy, marketing, sales, finance, tech, consulting, audit
 ```

@@ -1,5 +1,7 @@
 # Open Company
 
+[![tests](https://github.com/youdcode/open-company/actions/workflows/test.yml/badge.svg)](https://github.com/youdcode/open-company/actions/workflows/test.yml)
+
 **A company that runs in a folder. Bring the AI you already pay for.**
 
 Open Company is a ready-made team of AI roles (a Director, a Prospect Researcher, a Sales Rep,
@@ -61,6 +63,10 @@ interviews you for a few minutes (`setup`), then you can type:
 | `qualify` | Dated buying signals and a published contact route, then scoring |
 | `draft` | The sales rep writes first messages for the best leads |
 | `followups` | Today's follow-ups, drafted |
+| `replies` | Reads the reply emails you dropped in the inbox folder and updates the leads |
+| `brief Acme` / `proposal Acme` | Meeting brief, then proposal with its quote |
+| `quote for Acme` / `invoice Acme` | Quote or invoice draft with exact totals, issued by you |
+| `one-pager clinics` | One-page presentation of your offer for a segment |
 | `status` | Pipeline and board in six lines |
 | `sprint "launch in Belgium"` | The whole company works on one goal, the auditor reviews |
 | `export` | Approved messages go to a CSV for your own email tool |
@@ -90,6 +96,7 @@ A local web page (it never calls an AI, so it costs nothing) that shows:
 - **Office**: the organization chart, who is working right now, and a live activity feed
 - **Pipeline**: every lead with its score, signals, next action and sources
 - **Outreach**: drafted messages with Approve and Reject buttons
+- **Finance**: quotes and invoices; you issue them (which gives the next number), mark them paid, print to PDF
 - **Board**: tasks across the company (Todo, Doing, Review, Done)
 - **Handoffs**: the short notes the roles pass to each other
 - **Files**: everything the company has produced
@@ -138,9 +145,23 @@ It listens on `127.0.0.1` only and refuses requests from other websites. Run it 
 | Nothing sent without you | drafts need approval; `tools/export.mjs` only writes a CSV |
 | Opt-outs are final | no draft for a lead marked `do_not_contact` |
 | Short handoffs | `tools/handoff.mjs` refuses long messages |
+| Only a human issues a quote or an invoice | `tools/invoice.mjs` has no issue command; the Finance tab does it, with an unbroken numbering |
+| Exact totals | amounts in cents, VAT per line, computed by the script |
+| Opt-out replies are applied | `tools/replies.mjs` marks "please stop" replies `do_not_contact` |
+| Safe parallel work | shared files are locked, so agents working at the same time never lose a line |
 
 The other rules (primary sources, no LinkedIn scraping, minimal personal data, no invented claims)
 are in `AGENTS.md` and checked by the Auditor.
+
+## Data sources and replies
+
+- **Official company registers**, free, with a source link per company and birth dates removed:
+  France (no key), Norway (no key), United Kingdom (free key). See [docs/search-sources.md](docs/search-sources.md).
+- **Perplexity** or another search engine can be added as an optional, paid search source
+  ([how](docs/search-sources.md)).
+- **Replies** without giving anyone your mailbox password: save or drag reply emails as `.eml` files
+  into `workspace/prospecting/inbox/`, then type `replies`. Each reply is matched to its lead; a reply
+  asking you to stop marks the lead `do_not_contact`.
 
 ## Usage limits
 
@@ -186,10 +207,9 @@ line for this reason. Check the rules of your country.
 ## Roadmap
 
 - Test and tune Codex, OpenCode and Antigravity
-- More official company registries (UK, Belgium, Germany...)
-- Optional search sources through MCP (Perplexity and others)
-- Reply tracking from your mailbox, with approval
-- Playbooks for the other departments (marketing calendar, invoicing, proposals)
+- More official company registers (Belgium, Germany, Spain...)
+- Optional direct mailbox connection (IMAP, read-only) for replies
+- Credit notes, and export of issued invoices for your accountant
 
 ## Not affiliated
 

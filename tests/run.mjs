@@ -103,18 +103,70 @@ console.log('several agents at the same time');
   fs.writeFileSync(path.join(TMP, 'prospecting', 'leads.csv'), kept);
 }
 
+console.log('quotes and invoices');
+{
+  const doc = { type: 'invoice', client: { name: 'Acme Software', address: '1 Main St, Lyon' }, notes: 'Thank you.',
+    lines: [{ description: 'Setup', qty: 1.5, unit_price: 400 }, { description: 'Licence', qty: 2, unit_price: 99.99, vat_rate: 20 }] };
+  r = run('tools/invoice.mjs', ['new', '--json', JSON.stringify(doc)]);
+  const id = (r.out.match(/^(i-[a-z0-9-]+)/m) || [])[1];
+  const inv = id && JSON.parse(fs.readFileSync(path.join(TMP, 'departments', 'finance', 'documents', `${id}.json`), 'utf8'));
+  ok('invoice totals are exact (cents, VAT per line)', inv && inv.totals.net === 799.98 && inv.totals.vat === 160 && inv.totals.gross === 959.98, JSON.stringify(inv?.totals));
+  ok('a new invoice is a draft without number', inv && inv.status === 'draft' && inv.number === '');
+  ok('the printable HTML is written, marked DRAFT', id && /DRAFT/.test(fs.readFileSync(path.join(TMP, 'departments', 'finance', 'documents', `${id}.html`), 'utf8')));
+  r = run('tools/invoice.mjs', ['issue', id]);
+  ok('the AI cannot issue an invoice', r.code !== 0 && /human/.test(r.out));
+  r = run('tools/invoice.mjs', ['new', '--json', JSON.stringify({ type: 'invoice', client: { name: 'X' }, lines: [] })]);
+  ok('an invoice without lines is refused', r.code !== 0);
+  globalThis.__invoiceId = id;
+}
+
+console.log('replies from prospects');
+{
+  const inbox = path.join(TMP, 'prospecting', 'inbox');
+  fs.mkdirSync(inbox, { recursive: true });
+  run('tools/leads.mjs', ['add', '--json', JSON.stringify({ company: 'Reply Co', website: 'https://reply-co.example', contact_name: 'Ana', contact_channel: 'ana@reply-co.example', contact_source: 'https://reply-co.example/team', sources: 'https://reply-co.example' })]);
+  run('tools/leads.mjs', ['add', '--json', JSON.stringify({ company: 'Nope Ltd', website: 'https://nope.example', sources: 'https://nope.example' })]);
+  fs.writeFileSync(path.join(inbox, 'r1.eml'), 'From: Ana <ana@reply-co.example>\r\nSubject: =?utf-8?Q?Re=3A_Your_new_hires_=E2=9C=93?=\r\nDate: Mon, 21 Sep 2026 10:00:00 +0200\r\nContent-Type: multipart/alternative; boundary="b1"\r\n\r\n--b1\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nHello, yes let=E2=80=99s talk next Tuesday.\r\n\r\nOn Mon, you wrote:\r\n> old text\r\n--b1\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n--b1--\r\n');
+  fs.writeFileSync(path.join(inbox, 'r2.eml'), 'From: boss@nope.example\r\nSubject: Re: hello\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n' + Buffer.from('Merci de ne plus me contacter.').toString('base64') + '\r\n');
+  fs.writeFileSync(path.join(inbox, 'r3.eml'), 'From: someone@gmail.com\r\nSubject: hi\r\n\r\nhello\r\n');
+  r = run('tools/replies.mjs', []);
+  const rep2 = JSON.parse(r.out.slice(0, r.out.lastIndexOf('}') + 1));
+  const L = leads();
+  ok('a reply is matched by email and the lead becomes "replied"', rep2.matched.includes('reply-co') && /reply-co,Reply Co,.*,replied,/.test(L));
+  ok('the reply text is decoded and stored without the quoted history', /let’s talk next Tuesday/.test(fs.readFileSync(path.join(TMP, 'prospecting', 'accounts', 'reply-co.md'), 'utf8')) && !/old text/.test(fs.readFileSync(path.join(TMP, 'prospecting', 'accounts', 'reply-co.md'), 'utf8')));
+  ok('"do not contact me" (French, base64, matched by domain) marks the lead do_not_contact', rep2.optedOut.includes('nope-ltd') && /nope-ltd,.*,do_not_contact,/.test(L));
+  ok('a personal mailbox that matches no lead stays in the inbox', rep2.unmatched.length === 1 && fs.existsSync(path.join(inbox, 'r3.eml')) && fs.existsSync(path.join(inbox, 'processed', 'r1.eml')));
+}
+
 console.log('live office');
 const { startServer } = await import('../viewer/server.mjs');
 const port = 47000 + Math.floor(Math.random() * 1000);
 const server = await startServer(port);
 const base = `http://127.0.0.1:${port}`;
 const state = await (await fetch(`${base}/api/state`)).json();
-ok('state API returns roles, leads, drafts, events', state.roles.length === 9 && state.leads.length === 2 && state.drafts.length === 2 && state.events.length > 5);
+ok('state API returns roles, leads, drafts, events, finance', state.roles.length === 9 && state.leads.length === 4 && state.drafts.length === 2 && state.events.length > 5 && state.finance.length === 1);
 ok('files are listed even when the folder lives under a path containing "tmp"', state.files.some(f => f.path.endsWith('prospecting/leads.csv')));
 let res = await fetch(`${base}/api/drafts/acme-software-f1/status`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{"status":"approved"}' });
 ok('another website cannot approve a draft', res.status === 403);
 res = await fetch(`${base}/api/drafts/acme-software-f1/status`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: '{"status":"approved"}' });
 ok('the page can approve a draft', res.ok);
+{
+  const iid = globalThis.__invoiceId;
+  const post = st => fetch(`${base}/api/finance/${iid}/status`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ status: st }) });
+  let fr = await post('issued');
+  ok('issuing needs the billing details first', fr.status === 400 && /billing\.md/.test((await fr.json()).error));
+  fs.writeFileSync(path.join(TMP, 'company', 'billing.md'), '---\nlegal_name: Test Co SAS\naddress: 2 rue Test, Paris\ncurrency: EUR\nvat_rate: 20\npayment_terms_days: 30\ninvoice_prefix: INV\nquote_prefix: QUO\n---\n\n# Legal mentions\n\nLate payment penalty: 3 times the legal rate.\n');
+  fr = await post('issued');
+  const issued = JSON.parse(fs.readFileSync(path.join(TMP, 'departments', 'finance', 'documents', `${iid}.json`), 'utf8'));
+  const year = new Date().toISOString().slice(0, 4);
+  ok('the human issues it from the page: next number in the sequence', fr.ok && issued.number === `INV-${year}-0001` && issued.status === 'issued' && issued.due_date);
+  fr = await post('issued');
+  ok('an issued invoice cannot be issued twice', fr.status === 400);
+  const html = await (await fetch(`${base}/finance/${iid}.html`)).text();
+  ok('the issued invoice shows its number, seller, totals and legal mentions', html.includes(`INV-${year}-0001`) && html.includes('Test Co SAS') && /959[.,]98/.test(html) && html.includes('Late payment penalty') && !html.includes('class="draft"'));
+  fr = await post('paid');
+  ok('then it can be marked paid', fr.ok);
+}
 res = await fetch(`${base}/api/file?path=${encodeURIComponent('../../etc/passwd')}`);
 ok('files outside the workspace are not served', res.status === 404);
 const got = await new Promise(resolve => {
@@ -156,7 +208,13 @@ if (process.argv.includes('--online')) {
   const j = r.code === 0 ? JSON.parse(r.out) : { results: [] };
   ok('registry returns companies with a source URL', j.results.length > 0 && j.results.every(x => x.sources.startsWith('https://annuaire-entreprises.data.gouv.fr/')));
   ok('registry drops birth dates', !/naissance|birth/i.test(r.out));
+  r = run('tools/registry-no.mjs', ['--nace', '86.950', '--min-employees', '3', '--limit', '2', '--leaders']);
+  const jn = r.code === 0 ? JSON.parse(r.out) : { results: [] };
+  ok('Norwegian registry: active companies with sources, min employees raised to 5', jn.results.length > 0 && jn.results.every(x => x.sources.startsWith('https://virksomhet.brreg.no/')) && /privacy/.test(jn.note));
+  ok('Norwegian registry drops birth dates', !/fodselsdato|birth/i.test(r.out));
 }
+r = run('tools/registry-uk.mjs', ['--q', 'physio']);
+ok('UK registry explains how to get a free key when it is missing', r.code !== 0 && /COMPANIES_HOUSE_API_KEY/.test(r.out));
 
 fs.rmSync(BASE, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);

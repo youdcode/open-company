@@ -126,6 +126,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
       <a href="#office">Office <span class="n" id="n-office"></span></a>
       <a href="#pipeline">Pipeline <span class="n" id="n-pipeline"></span></a>
       <a href="#outreach">Outreach <span class="n" id="n-outreach"></span></a>
+      <a href="#finance">Finance <span class="n" id="n-finance"></span></a>
       <a href="#board">Board <span class="n" id="n-board"></span></a>
       <a href="#messages">Handoffs <span class="n" id="n-messages"></span></a>
       <a href="#files">Files <span class="n" id="n-files"></span></a>
@@ -284,6 +285,40 @@ function outreach() {
   : `<div class="card empty">${outFilter === 'draft' ? 'No draft waiting. Once leads are qualified, type <code>draft</code> in your AI\'s terminal.' : 'Nothing here.'}</div>`}
   <p class="muted small">Nothing is ever sent from here. Approved messages are exported to a CSV (<code>node tools/export.mjs</code>) for the tool you already use.</p>`;
 }
+const money = (x, c) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: c || 'EUR' }).format(x); } catch { return `${x} ${c}`; } };
+let armed = '';
+function finance() {
+  const D = S.finance || [];
+  const sum = f => D.filter(f).reduce((s, d) => s + (d.totals?.gross || 0), 0);
+  const cur = (D[0] && D[0].currency) || 'EUR';
+  const k = [['Drafts to issue', D.filter(d => d.status === 'draft').length], ['Quotes out', money(sum(d => d.type === 'quote' && d.status === 'issued'), cur)],
+    ['Invoices unpaid', money(sum(d => d.type === 'invoice' && d.status === 'issued'), cur)], ['Paid', money(sum(d => d.status === 'paid'), cur)]];
+  const actions = d => {
+    if (d.status === 'draft') return armed === d.id
+      ? `<button class="btn primary" onclick="finAct(${arg(d.id)},'issued',this)">Confirm: give it the next number</button><button class="btn" onclick="armed='';render()">Cancel</button>`
+      : `<button class="btn" onclick="armed=${arg(d.id)};render()">Issue</button>`;
+    if (d.status === 'issued' && d.type === 'invoice') return `<button class="btn" onclick="finAct(${arg(d.id)},'paid',this)">Mark paid</button><button class="btn" onclick="finAct(${arg(d.id)},'void',this)">Void</button>`;
+    if (d.status === 'issued' && d.type === 'quote') return `<button class="btn" onclick="finAct(${arg(d.id)},'accepted',this)">Accepted</button><button class="btn" onclick="finAct(${arg(d.id)},'declined',this)">Declined</button>`;
+    return '';
+  };
+  return `${S.billingReady ? '' : '<div class="banner">Fill <code>workspace/company/billing.md</code> (legal name, address, VAT number, legal mentions) before issuing anything.</div>'}
+  <div class="kpis">${k.map(([a, b]) => `<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+  <div class="card" style="overflow:auto">${D.length ? `<table><tr><th>Document</th><th>Client</th><th class="num">Total</th><th>Status</th><th class="hide-sm">Dates</th><th></th></tr>
+  ${D.map(d => `<tr><td><b>${d.type === 'quote' ? 'Quote' : 'Invoice'}</b><div class="muted small">${esc(d.number || 'draft')}</div></td><td>${esc(d.client)}</td>
+    <td class="num"><b>${esc(money(d.totals?.gross || 0, d.currency))}</b><div class="muted small">${esc(money(d.totals?.net || 0, d.currency))} excl. VAT</div></td>
+    <td><span class="pill ${d.status === 'paid' || d.status === 'accepted' ? 'approved' : d.status === 'draft' ? 'draft' : d.status === 'void' || d.status === 'declined' ? 'rejected' : ''}">${esc(d.status)}</span></td>
+    <td class="hide-sm small muted">${esc([d.issue_date && 'issued ' + d.issue_date, d.due_date && 'due ' + d.due_date].filter(Boolean).join(' · ') || 'not issued')}</td>
+    <td style="white-space:nowrap"><a class="btn" href="/finance/${encodeURIComponent(d.id)}.html" target="_blank" rel="noopener">Open</a> ${actions(d)}</td></tr>`).join('')}</table>`
+  : '<div class="empty">No quote or invoice yet. In your AI\'s terminal, type <code>quote for &lt;client&gt;</code>.</div>'}</div>
+  <p class="muted small">The AI only prepares drafts. Issuing, payments and cancellations are your clicks, and numbers follow an unbroken sequence. Open a document and print it to PDF.</p>`;
+}
+async function finAct(id, status, btn) {
+  btn.disabled = true;
+  const r = await fetch(`/api/finance/${id}/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) });
+  armed = '';
+  if (!r.ok) { const e = await r.json().catch(() => ({})); $('#main').insertAdjacentHTML('afterbegin', `<div class="banner">${esc(e.error || 'Could not update this document.')}</div>`); btn.disabled = false; return; }
+  load();
+}
 function board() {
   return `<div class="kanban">${['Todo', 'Doing', 'Review', 'Done'].map(c => `<div class="col"><h3>${c}<span>${S.board[c].length}</span></h3>
     ${S.board[c].map(t => `<div class="task">${esc(t.text)}${t.role ? `<div class="o">${av(t.role)}${esc(roleTitle(t.role))}</div>` : ''}</div>`).join('') || '<div class="muted small" style="padding:4px">Empty</div>'}</div>`).join('')}</div>`;
@@ -299,7 +334,8 @@ function files() {
 }
 
 const VIEWS = { office: ['Office', 'Who is doing what, right now', office], pipeline: ['Pipeline', 'Every lead is sourced. Scores are computed by a script, not guessed.', pipeline],
-  outreach: ['Outreach', 'Messages written by the team, waiting for your call', outreach], board: ['Board', 'Tasks across the company', board],
+  outreach: ['Outreach', 'Messages written by the team, waiting for your call', outreach],
+  finance: ['Finance', 'Quotes and invoices: the team drafts, you issue', finance], board: ['Board', 'Tasks across the company', board],
   messages: ['Handoffs', 'How the roles pass work to each other', messages], files: ['Files', 'Everything the company has produced', files] };
 
 function render(fresh = []) {
@@ -309,6 +345,7 @@ function render(fresh = []) {
   $('#engine').textContent = S.session.engine ? `Running on ${ENGINES[S.session.engine] || S.session.engine}` : 'No AI connected';
   $('#since').textContent = S.session.started ? `since ${new Date(S.session.started).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '';
   $('#n-pipeline').textContent = S.leads.length || ''; $('#n-outreach').textContent = S.drafts.filter(d => d.status === 'draft').length || '';
+  $('#n-finance').textContent = (S.finance || []).filter(d => d.status === 'draft').length || '';
   $('#n-board').textContent = (S.board.Todo.length + S.board.Doing.length) || ''; $('#n-messages').textContent = S.messages.length || ''; $('#n-files').textContent = S.files.length || '';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + view));
   const [t, sub, fn] = VIEWS[view];
@@ -321,7 +358,7 @@ function render(fresh = []) {
 async function review(id, status, btn) {
   btn.disabled = true;
   const r = await fetch(`/api/drafts/${id}/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) });
-  if (!r.ok) { btn.disabled = false; alert('Could not update this draft.'); }
+  if (!r.ok) { btn.disabled = false; $('#main').insertAdjacentHTML('afterbegin', '<div class="banner">Could not update this draft.</div>'); return; }
   load();
 }
 async function openFile(p) {

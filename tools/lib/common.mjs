@@ -159,6 +159,14 @@ export function args(argv = process.argv.slice(2)) {
   return out;
 }
 
+// Optional secrets (API keys for data sources) live in workspace/.env, which is never committed.
+export function loadEnv() {
+  for (const line of readText(path.join(WS, '.env')).split(/\r?\n/)) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+}
+
 export const isMain = url => !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(url);
 
 export function fail(msg) {

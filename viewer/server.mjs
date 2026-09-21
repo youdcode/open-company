@@ -12,6 +12,7 @@ import {
 } from '../tools/lib/common.mjs';
 import { parseBoard } from '../tools/board.mjs';
 import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
+import { listDocs, setDocStatus, htmlOf, billing } from '../tools/invoice.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
 const HTML = path.join(ROOT, 'viewer', 'index.html');
@@ -92,6 +93,8 @@ function snapshot() {
     drafts: exists ? listDrafts() : [],
     messages: readMessages(),
     files: exists ? listFiles() : [],
+    finance: exists ? listDocs().map(d => ({ id: d.id, type: d.type, number: d.number, status: d.status, client: d.client?.name, totals: d.totals, currency: d.currency, created: d.created, issue_date: d.issue_date, due_date: d.due_date, author: d.author })) : [],
+    billingReady: exists && !!(billing().legal_name && billing().address),
   };
 }
 
@@ -175,6 +178,21 @@ export function startServer(port = DEFAULT_PORT) {
         clients.add(res);
         req.on('close', () => clients.delete(res));
         return;
+      }
+      const doc = /^\/finance\/([qi]-[a-z0-9-]+)\.html$/.exec(url.pathname);
+      if (doc && req.method === 'GET') {
+        const f = htmlOf(doc[1]);
+        if (!fs.existsSync(f)) return json(res, 404, { error: 'not found' });
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+        return res.end(readText(f));
+      }
+      const fin = /^\/api\/finance\/([qi]-[a-z0-9-]+)\/status$/.exec(url.pathname);
+      if (fin && req.method === 'POST') {
+        if (!String(req.headers['content-type'] || '').includes('application/json')) return json(res, 415, { error: 'json only' });
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        try { setDocStatus(fin[1], JSON.parse(body || '{}').status, 'you'); } catch (e) { return json(res, 400, { error: e.message }); }
+        return json(res, 200, { ok: true });
       }
       const m = /^\/api\/drafts\/([a-z0-9-]+)\/status$/.exec(url.pathname);
       if (m && req.method === 'POST') {
