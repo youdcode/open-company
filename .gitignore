@@ -1,6 +1,7 @@
 # Your company's private data never leaves your computer.
-workspace/
-.demo/
+/workspace/
+/.demo/
 node_modules/
 .DS_Store
 *.tmp-*
+*.lock
