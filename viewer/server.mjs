@@ -13,7 +13,7 @@ import {
 import { parseBoard } from '../tools/board.mjs';
 import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
 import { listDocs, setDocStatus, htmlOf, billing } from '../tools/invoice.mjs';
-import { chatInfo, sendChat, checkChat, setEngine, newConversation, stopChat } from './chat.mjs';
+import { chatInfo, sendChat, checkChat, setEngine, setReadDirs, newConversation, stopChat } from './chat.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
 const HTML = path.join(ROOT, 'viewer', 'index.html');
@@ -193,6 +193,7 @@ export function startServer(port = DEFAULT_PORT) {
         const data = JSON.parse(body || '{}');
         try {
           if (url.pathname === '/api/chat/engine') { setEngine(data.engine); return json(res, 200, { ok: true }); }
+          if (url.pathname === '/api/chat/dirs') { try { return json(res, 200, { dirs: setReadDirs(data.dirs) }); } catch (e) { return json(res, 400, { error: e.message }); } }
           if (url.pathname === '/api/chat/new') { newConversation(); return json(res, 200, { ok: true }); }
           if (url.pathname === '/api/chat/stop') return json(res, 200, { stopped: stopChat() });
           if (url.pathname === '/api/chat') {

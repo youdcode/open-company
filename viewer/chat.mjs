@@ -4,6 +4,7 @@
 // Nothing here uses an API key: it is the same tool you would use in a terminal.
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { ROOT, WS, P, readText, writeText, logEvent, now } from '../tools/lib/common.mjs';
 
@@ -31,7 +32,7 @@ function roleTitle(id) {
 
 // What the AI receives in addition to the owner's words: who should answer, in which language,
 // and how to show which role is speaking and how they hand work to each other.
-export function routingNote(to = 'auto', lang = 'en') {
+export function routingNote(to = 'auto', lang = 'en', dirs = []) {
   const route = to === 'auto'
     ? 'The owner wrote to the company: as the Director (CEO), decide which role should handle it. If it is work for a role, hand it off with tools/handoff.mjs (from director to that role, 3 lines max) and let that role do the work and answer.'
     : to === 'director'
@@ -40,7 +41,8 @@ export function routingNote(to = 'auto', lang = 'en') {
   const language = lang === 'fr'
     ? 'Reply in French, the owner\'s language, and write the board tasks, handoffs and log lines of this request in French too.'
     : 'Reply in English.';
-  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
+  const refs = dirs.length ? ` Read-only reference folders the owner gave you: ${dirs.join(', ')}. Read them when useful, never write there, and cite the file path as the source of any fact taken from them.` : '';
+  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
 }
 
 // "[marketer]\nHello\n[director]\nDone" -> [{role: 'marketer', text: 'Hello'}, {role: 'director', text: 'Done'}]
@@ -60,7 +62,9 @@ export function splitByRole(text, fallback = 'director') {
 export const CHAT_ENGINES = {
   claude: {
     name: 'Claude Code', bin: 'claude',
-    args: sid => ['-p', '--output-format', 'stream-json', '--verbose', ...(sid ? ['--resume', sid] : []), '--allowedTools', ...CLAUDE_TOOLS],
+    // Reference folders are added for reading only: the allow list never lets Claude write outside workspace/.
+    args: (sid, _msg, dirs = []) => ['-p', '--output-format', 'stream-json', '--verbose', ...(sid ? ['--resume', sid] : []),
+      ...(dirs.length ? ['--add-dir', ...dirs] : []), '--allowedTools', ...CLAUDE_TOOLS],
     parse(ev, emit) {
       if (ev.session_id) emit({ type: 'session', id: ev.session_id });
       if (ev.type === 'assistant') for (const c of ev.message?.content || []) {
@@ -117,7 +121,22 @@ export function chatInfo() {
   try { session = JSON.parse(readText(P.session, '{}')); } catch {}
   const engine = [st.engine, session.engine].find(e => e && installed.includes(e)) || installed[0] || '';
   const history = readText(HISTORY).split('\n').filter(Boolean).slice(-200).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-  return { engine, installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running };
+  return { engine, installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, readDirs: st.readDirs || [] };
+}
+
+// Folders the team may READ (never write): for example the documents of your company.
+export function setReadDirs(list) {
+  const dirs = [];
+  for (const raw of (Array.isArray(list) ? list : []).slice(0, 10)) {
+    const p = path.resolve(String(raw || '').trim().replace(/^~(?=$|[\\/])/, os.homedir()));
+    if (!String(raw || '').trim()) continue;
+    let ok = false;
+    try { ok = fs.statSync(p).isDirectory(); } catch {}
+    if (!ok) throw new Error(`not a folder on this computer: ${raw}`);
+    if (!dirs.includes(p)) dirs.push(p);
+  }
+  saveState({ ...readState(), readDirs: dirs });
+  return dirs;
 }
 
 export function setEngine(engine) {
@@ -155,9 +174,10 @@ export function sendChat(message, emit, { to = 'auto', lang = 'en' } = {}) {
   fs.mkdirSync(path.dirname(HISTORY), { recursive: true });
   fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: 'you', to, text }) + '\n');
   logEvent('you', 'chat', to === 'auto' ? `You: ${short(text)}` : `You → ${to}: ${short(text)}`);
-  const prompt = text + routingNote(to, lang);
+  const dirs = (st.readDirs || []).filter(d => { try { return fs.statSync(d).isDirectory(); } catch { return false; } });
+  const prompt = text + routingNote(to, lang, dirs);
 
-  let argv = E.promptAsArg ? E.args(sid, prompt) : E.args(sid);
+  let argv = E.args(sid, prompt, dirs);
   // On Windows the AI tools are .cmd files, which only start through the shell: quote every argument.
   const win = process.platform === 'win32';
   if (win) argv = argv.map(a => /[\s"^&|<>()%!*]/.test(a) ? `"${String(a).replace(/"/g, "'").replace(/%/g, '%%')}"` : a);

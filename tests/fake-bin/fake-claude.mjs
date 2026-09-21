@@ -13,6 +13,8 @@ process.stdin.on('end', () => {
   const role = direct ? direct[1] : 'director';
   const words = prompt.split('\n\n---\n')[0].trim();
   const lang = /Reply in French/.test(prompt) ? ' (fr)' : '';
-  out({ type: 'assistant', message: { content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
+  const d = args.indexOf('--add-dir');
+  const dirs = d >= 0 ? ` (can read: ${args.slice(d + 1, args.indexOf('--allowedTools')).join(', ')})` : '';
+  out({ type: 'assistant', message: { content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${dirs}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
   out({ type: 'result', subtype: 'success', is_error: false, result: 'ok', session_id: resumed || 'fake-session-1' });
 });

@@ -118,6 +118,12 @@ The human's AI subscription has usage limits shared with everything else they do
 - Do not repeat in the chat what the live page already shows. Point to it.
 - Where your tool allows choosing models, use the tier in the table above.
 
+## Reference folders
+
+The owner can give the team folders to READ from the Chat tab (for example the documents of their
+company). The chat note lists them. Read them when useful, never write there, and cite the file path as
+the source of any fact taken from them. Never read outside `workspace/` and these folders.
+
 ## Web research
 
 - Use your tool's web search and page fetch.

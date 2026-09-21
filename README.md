@@ -81,6 +81,10 @@ shows everything. You can also open the folder directly with your AI tool (`clau
 Each chat message runs your AI tool in this folder in headless mode, with your own login, and continues
 the same conversation. Log in to your AI tool once in a terminal before the first chat.
 
+**Readable folders.** The team only reads this project. To let it learn from your own documents (a
+company handbook, a business plan...), add the folder under "Readable folders" in the chat: the team can
+read it, never write in it (tested with Claude Code). What it reads is sent to your AI tool.
+
 ## Supported AI tools
 
 | AI | Tool | How you pay | Status |

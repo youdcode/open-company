@@ -139,6 +139,9 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .team{align-self:stretch;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:2px 4px;cursor:pointer;min-width:0}
 .team .av{width:18px;height:18px;border-radius:5px;font-size:8.5px}.team b{color:var(--ink-2);font-weight:600;white-space:nowrap}.team .s{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .av.x3{font-size:10px;letter-spacing:-.03em}.team .av.x3,.who-line .av.x3,.to button .av.x3,.task .o .av.x3,.msg .route .av.x3{font-size:6.5px}.ev .av.x3{font-size:8px}
+.dirs{border-bottom:1px solid var(--line);padding:10px 14px;display:none;flex-direction:column;gap:8px;background:var(--soft)}
+.dirs.open{display:flex}.dirs .row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:12.5px}
+.dirs input{flex:1;font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .bub .to-line{font-size:11px;opacity:.7;margin-bottom:2px}
 @media (max-width:1100px){.roles{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
@@ -212,6 +215,8 @@ const I18N = {
     demoChat: 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.', couldNotStart: 'The team could not start.',
     noEngine: 'no AI tool found', sugSetup: ['setup', 'What can you do for me?'], sugMain: ['status', 'What should I do today?', 'prospect 5', 'qualify', 'draft', 'followups'],
     newConvMarker: 'New conversation',
+    dirs: n => `Readable folders${n ? ` (${n})` : ''}`, dirsHint: 'The team can read these folders, never write in them. What it reads is sent to your AI tool, like everything it works on.',
+    dirAdd: 'Add', dirPh: 'Full path of a folder, for example /Users/you/Documents/my-company', dirNone: 'No folder yet: the team only reads this project.', remove: 'Remove',
   },
   fr: {
     liveOffice: 'Bureau en direct', close: 'Fermer', connecting: 'Connexion…', live: 'En direct', reconnecting: 'Reconnexion…',
@@ -249,6 +254,8 @@ const I18N = {
     demoChat: "Le chat est désactivé en mode démo : rien n'est réel ici. Lancez votre propre entreprise avec <code>./start</code>.", couldNotStart: "L'équipe n'a pas pu démarrer.",
     noEngine: 'aucune IA trouvée', sugSetup: ['setup', 'Que pouvez-vous faire pour moi ?'], sugMain: ['status', "Que dois-je faire aujourd'hui ?", 'prospect 5', 'qualify', 'draft', 'followups'],
     newConvMarker: 'Nouvelle conversation',
+    dirs: n => `Dossiers lisibles${n ? ` (${n})` : ''}`, dirsHint: "L'équipe peut lire ces dossiers, jamais y écrire. Ce qu'elle lit est envoyé à votre outil d'IA, comme tout ce sur quoi elle travaille.",
+    dirAdd: 'Ajouter', dirPh: "Chemin complet d'un dossier, par exemple /Users/vous/Documents/mon-entreprise", dirNone: "Aucun dossier : l'équipe ne lit que ce projet.", remove: 'Retirer',
   },
 };
 const ROLE_FR = { director: 'CEO', researcher: 'Prospection', sales: 'Commercial', strategist: 'Stratège', marketer: 'Marketing', finance: 'Finance', tech: 'Tech', consultant: 'Consultant', auditor: 'Auditeur', you: 'Vous' };
@@ -423,7 +430,8 @@ let chat = { info: null, busy: false, to: (() => { try { return localStorage.get
 const isTeam = e => e.type === 'handoff' || (e.type === 'task' && /^Done:/.test(e.text || ''));
 function chatView() {
   return `<div class="card chat"><div class="chat-bar"><span class="muted small">${t('ai')}</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
-    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
+    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
+    <div class="dirs" id="dirs"></div>
     <div class="chat-log" id="chat-log"></div>
     <div class="to" id="chat-to"></div>
     <div class="composer"><textarea id="chat-input" rows="1"></textarea>
@@ -437,6 +445,23 @@ function recipients() {
   bar.innerHTML = `<span class="lbl">${t('to')}</span><button class="auto ${chat.to === 'auto' ? 'on' : ''}" onclick="setTo('auto')">${esc(t('auto'))}</button>` +
     ids.map(id => `<button class="${chat.to === id ? 'on' : ''}" onclick="setTo(${arg(id)})">${av(id)}${esc(roleTitle(id))}</button>`).join('');
   $('#chat-input').placeholder = t('placeholder', chat.to === 'auto' ? t('theTeam') : roleTitle(chat.to));
+}
+function renderDirs() {
+  const d = chat.info?.readDirs || [];
+  $('#dirs-btn').textContent = t('dirs', d.length);
+  $('#dirs').innerHTML = `<div class="muted small">${t('dirsHint')}</div>
+    ${d.length ? d.map((x, i) => `<div class="row"><span style="flex:1;overflow-wrap:anywhere">${esc(x)}</span><button class="btn" onclick="saveDirs(${i})">${t('remove')}</button></div>`).join('') : `<div class="muted small">${t('dirNone')}</div>`}
+    <div class="row"><input id="dir-new" placeholder="${esc(t('dirPh'))}"><button class="btn primary" onclick="saveDirs()">${t('dirAdd')}</button></div><div class="err" id="dir-err"></div>`;
+  $('#dir-new').onkeydown = e => { if (e.key === 'Enter') saveDirs(); };
+}
+async function saveDirs(removeIndex) {
+  let d = [...(chat.info?.readDirs || [])];
+  if (removeIndex !== undefined) d.splice(removeIndex, 1);
+  else { const v = $('#dir-new').value.trim(); if (!v) return; d.push(v); }
+  const r = await fetch('/api/chat/dirs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ dirs: d }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { $('#dir-err').textContent = j.error || t('updateFailed'); return; }
+  chat.info.readDirs = j.dirs; renderDirs(); $('#dirs').classList.add('open');
 }
 function setTo(id) { chat.to = id; try { localStorage.setItem('oc-to', id); } catch {} recipients(); $('#chat-input').focus(); }
 function bubble(from, html, extra = '') {
@@ -480,7 +505,7 @@ async function chatInit() {
   const r = await fetch('/api/chat'); chat.info = await r.json();
   const sel = $('#chat-engine'); if (!sel) return;
   sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || `<option>${t('noEngine')}</option>`;
-  recipients();
+  recipients(); renderDirs();
   const log = $('#chat-log'); log.innerHTML = ''; chat.shownTeam = new Set();
   if (chat.info.demo) { bubble('system', t('demoChat')); $('#chat-input').disabled = true; $('#chat-send').disabled = true; return; }
   const hist = chat.info.history.slice(-60);
