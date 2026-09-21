@@ -4,7 +4,7 @@
 // Usage: node viewer/ensure.mjs [--no-open] [--engine claude|codex|opencode|agy]
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { ROOT, P, args, readText, writeText, now } from '../tools/lib/common.mjs';
+import { ROOT, P, args, readText, writeText, now, writeClaudeLocalSettings } from '../tools/lib/common.mjs';
 import { init } from '../tools/init.mjs';
 
 const PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
@@ -37,6 +37,7 @@ function markSession(engine) {
 export async function ensure({ open = true, engine = '' } = {}) {
   init({ quiet: true });
   markSession(engine);
+  if (engine === 'claude') writeClaudeLocalSettings();
   if (await ping()) return { started: false, url: URL_ };
   const child = spawn(process.execPath, [path.join(ROOT, 'viewer', 'server.mjs'), '--port', String(PORT)], {
     cwd: ROOT, stdio: 'ignore', detached: true,

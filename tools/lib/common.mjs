@@ -192,3 +192,24 @@ export function fail(msg) {
 export function requireWorkspace() {
   if (!fs.existsSync(WS)) fail('workspace/ does not exist yet. Run: node tools/init.mjs');
 }
+
+// Claude Code: project permissions use relative paths (node tools/...). Subagents sometimes call the
+// same tools with an absolute path, which would then stop to ask the human. This writes
+// .claude/settings.local.json (personal, never committed) with the absolute forms for THIS folder.
+export function writeClaudeLocalSettings(root = ROOT) {
+  const abs = root.split(path.sep).join('/');
+  const want = {
+    permissions: {
+      allow: [`Bash(node ${abs}/tools/*)`, `Bash(node ${abs}/viewer/*)`, `Edit(/${abs}/workspace/**)`],
+      deny: [`Bash(node ${abs}/tools/..*)`, `Bash(node ${abs}/viewer/..*)`],
+    },
+  };
+  const file = path.join(root, '.claude', 'settings.local.json');
+  let cur = {};
+  try { cur = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
+  const merged = { ...cur, permissions: { ...(cur.permissions || {}) } };
+  for (const k of ['allow', 'deny']) merged.permissions[k] = [...new Set([...(cur.permissions?.[k] || []), ...want.permissions[k]])];
+  const text = JSON.stringify(merged, null, 2) + '\n';
+  if (text !== readText(file)) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); }
+  return file;
+}

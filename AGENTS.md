@@ -70,7 +70,8 @@ Everything goes through files, so the live page shows it and any AI tool can fol
 - **Files**: every markdown file you write starts with front matter containing `author: <role>` and
   `updated: YYYY-MM-DD`.
 - **Running tools**: every tool prints its usage with `--help` (no side effects).
-  One `node tools/...` command per call, on one line. No shell loops, pipes, heredocs
+  One `node tools/...` command per call, on one line, always with the relative path from the project
+  root (`node tools/leads.mjs`, never `node /full/path/tools/leads.mjs`). No shell loops, pipes, heredocs
   or `node -e` scripts: they are not pre-approved and would stop to ask the human. To read a file, use
   your file reading tool. To process several leads, call the tool once per lead or use its batch option.
 - **Scratch files** go in `workspace/tmp/` (JSON batches, message bodies). Never delete files:

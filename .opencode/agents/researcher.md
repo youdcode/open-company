@@ -49,4 +49,6 @@ and a handoff is written. Return at most 10 lines to the Director.
 ## Always
 - Follow the rules and the protocol in AGENTS.md (sources, nothing sent, write only in workspace/).
 - Log your start and end with `node tools/log.mjs <your role> "..."`, and finish with a handoff.
+- Run tools with the relative path from the project root (`node tools/x.mjs`, never an absolute path),
+  one command per call: other forms stop to ask the human for permission.
 - Return at most 10 lines to the Director, plus the paths of the files you wrote.

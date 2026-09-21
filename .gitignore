@@ -1,6 +1,7 @@
 # Your company's private data never leaves your computer.
 /workspace/
 /.demo/
+.claude/settings.local.json
 node_modules/
 .DS_Store
 *.tmp-*

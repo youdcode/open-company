@@ -10,7 +10,9 @@
     ],
     "deny": [
       "Bash(git push*)",
-      "Bash(rm -rf*)"
+      "Bash(rm -rf*)",
+      "Bash(node tools/..*)",
+      "Bash(node viewer/..*)"
     ]
   },
   "hooks": {

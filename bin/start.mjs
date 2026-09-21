@@ -8,7 +8,7 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import net from 'node:net';
 import { spawn } from 'node:child_process';
-import { ROOT, P, WS, args, logEvent, writeText, readText, now } from '../tools/lib/common.mjs';
+import { ROOT, P, WS, args, logEvent, writeText, readText, now, writeClaudeLocalSettings } from '../tools/lib/common.mjs';
 import { init } from '../tools/init.mjs';
 import { startServer } from '../viewer/server.mjs';
 import { ping, openBrowser } from '../viewer/ensure.mjs';
@@ -127,6 +127,7 @@ async function main() {
   }
 
   const E = ENGINES[engine];
+  if (engine === 'claude') writeClaudeLocalSettings();
   writeText(path.join(WS, '.engine'), engine);
   writeText(P.session, JSON.stringify({ engine, started: now() }));
   logEvent('director', 'system', `Company opened with ${E.name}`);

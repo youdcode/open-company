@@ -83,6 +83,18 @@ ok('long handoffs are refused', r.code !== 0);
 const events = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
 ok('every step reached the live feed', events.some(e => e.type === 'lead') && events.some(e => e.type === 'draft') && events.some(e => e.type === 'review') && events.some(e => e.type === 'handoff'));
 
+console.log('claude local permissions');
+{
+  const { writeClaudeLocalSettings } = await import('../tools/lib/common.mjs');
+  const fake = path.join(BASE, 'fake project');
+  fs.mkdirSync(path.join(fake, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(fake, '.claude', 'settings.local.json'), JSON.stringify({ permissions: { allow: ['Bash(npm test)'] }, model: 'x' }));
+  writeClaudeLocalSettings(fake); writeClaudeLocalSettings(fake);
+  const st = JSON.parse(fs.readFileSync(path.join(fake, '.claude', 'settings.local.json'), 'utf8'));
+  const abs = fake.split(path.sep).join('/');
+  ok('absolute tool paths are allowed for this folder only, escapes denied, user settings kept', st.model === 'x' && st.permissions.allow.includes('Bash(npm test)') && st.permissions.allow.includes(`Bash(node ${abs}/tools/*)`) && st.permissions.deny.includes(`Bash(node ${abs}/tools/..*)`) && st.permissions.allow.length === 4);
+}
+
 console.log('--help never does anything');
 {
   const before = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
