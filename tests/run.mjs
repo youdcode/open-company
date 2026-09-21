@@ -185,8 +185,11 @@ const got = await new Promise(resolve => {
   }).catch(() => {});
 });
 ok('a file written by an agent is pushed live', got);
-await new Promise(r3 => setTimeout(r3, 1200));
-const feed = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
+let feed = '';
+for (let i = 0; i < 60 && !/"role":"marketer","type":"file"/.test(feed); i++) {
+  await new Promise(r3 => setTimeout(r3, 100));
+  feed = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
+}
 ok('direct file edits appear in the feed with their author', /"role":"marketer","type":"file"/.test(feed));
 server.close();
 
