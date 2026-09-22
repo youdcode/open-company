@@ -98,7 +98,7 @@ console.log('claude local permissions');
 console.log('--help never does anything');
 {
   const before = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
-  const tools = ['board', 'drafts', 'export', 'handoff', 'init', 'invoice', 'leads', 'log', 'registry-fr', 'registry-no', 'registry-uk', 'replies', 'score', 'sync-adapters'];
+  const tools = ['artifact', 'board', 'drafts', 'export', 'handoff', 'init', 'invoice', 'leads', 'log', 'registry-fr', 'registry-no', 'registry-uk', 'replies', 'say', 'score', 'sync-adapters'];
   const outs = tools.map(t => run(`tools/${t}.mjs`, ['--help']));
   ok('every tool answers --help with its usage', outs.every(o => o.code === 0 && o.out.trim().length > 20));
   ok('--help has no side effect (no event, no export)', fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8') === before);
@@ -194,50 +194,109 @@ ok('the page can approve a draft', res.ok);
   ok('French invoices use French labels and hide the notes written for the owner', /Facture n°/.test(htmlFr) && /Total TTC/.test(htmlFr) && /Délai de paiement/.test(htmlFr) && !/note for me only/.test(htmlFr));
 }
 {
-  // Chat with the Director, using a fake "claude" that answers like the real one in headless mode.
+  // Chat with the team, using a fake "claude" that answers like the real one in headless mode.
   process.env.PATH = path.join(ROOT, 'tests', 'fake-bin') + path.delimiter + process.env.PATH;
-  const say = async message => {
-    const r2 = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ message }) });
-    const text = await r2.text();
-    return { status: r2.status, events: text.split('\n').filter(Boolean).map(l => JSON.parse(l)) };
-  };
-  const first = await say('status');
-  ok('chat streams the actions and the answer of the AI', first.status === 200 && first.events.some(e => e.type === 'tool' && /leads\.mjs list/.test(e.text)) && first.events.some(e => e.type === 'text' && /Got it/.test(e.text) && /status/.test(e.text)) && first.events.at(-1).type === 'done');
-  const second = await say('prospect 5');
-  ok('the next message continues the same conversation', second.events.some(e => e.type === 'text' && /resumed fake-session-1/.test(e.text)));
-  const info = await (await fetch(`${base}/api/chat`)).json();
-  ok('the conversation is saved and shown again after a reload', info.engine === 'claude' && info.history.filter(m => m.from === 'you').length === 2 && info.history.filter(m => m.from === 'director').length === 2);
-  const sayTo = async (message, to, lang) => {
-    const r3 = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ message, to, lang }) });
-    return { status: r3.status, text: await r3.text() };
-  };
-  const mk = await sayTo('Un one-pager pour les cliniques ?', 'marketer', 'fr');
-  const info2 = await (await fetch(`${base}/api/chat`)).json();
-  const lastReply = info2.history.at(-1), lastYou = info2.history.filter(m => m.from === 'you').at(-1);
+  const H = { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` };
+  const sleep = ms => new Promise(r4 => setTimeout(r4, ms));
+  const info = async () => (await fetch(`${base}/api/chat`)).json();
+  const idle = async () => { for (let i = 0; i < 150; i++) { const j = await info(); if (!j.busy) return j; await sleep(100); } return info(); };
+  // Collects the chat stream (as the page does) until the request is done.
+  const stream = () => new Promise(resolve => {
+    const ctrl = new AbortController(); const events = []; let first = null;
+    const tm = setTimeout(() => { ctrl.abort(); resolve({ events, first }); }, 15000);
+    fetch(`${base}/api/chat/stream`, { signal: ctrl.signal }).then(async r5 => {
+      const reader = r5.body.getReader(); let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read(); if (done) break;
+        buf += new TextDecoder().decode(value);
+        let k;
+        while ((k = buf.indexOf('\n\n')) >= 0) {
+          const block = buf.slice(0, k); buf = buf.slice(k + 2);
+          const ev = /^event: (\w+)/m.exec(block)?.[1], data = /^data: (.*)$/m.exec(block)?.[1];
+          if (!data) continue;
+          const d = JSON.parse(data);
+          if (ev === 'job' && !first) first = d;
+          if (ev === 'chat') { events.push(d); if (d.type === 'done') { clearTimeout(tm); ctrl.abort(); resolve({ events, first }); return; } }
+        }
+      }
+    }).catch(() => {});
+  });
+  const send = (message, to = 'auto', lang = 'en') => fetch(`${base}/api/chat`, { method: 'POST', headers: H, body: JSON.stringify({ message, to, lang }) });
+  let st = stream(); await sleep(150);
+  let r6 = await send('status');
+  const first = await st;
+  ok('a chat request starts in the background and answers at once', r6.ok && (await r6.json()).job);
+  ok('the page receives the actions and the answer live', first.events.some(e => e.type === 'tool' && /leads\.mjs list/.test(e.text)) && first.events.some(e => e.type === 'text' && /Got it/.test(e.text) && /status/.test(e.text)) && first.events.at(-1).type === 'done');
+  await idle();
+  await send('prospect 5'); let j1 = await idle();
+  ok('the next message continues the same conversation', /resumed fake-session-1/.test(j1.history.at(-1).text));
+  ok('the conversation is saved and shown again after a reload', j1.engine === 'claude' && j1.history.filter(m => m.from === 'you').length === 2 && j1.history.filter(m => m.from === 'director').length === 2);
+
+  // Leave and come back: a slow request keeps running on the server and can be picked up again.
+  process.env.FAKE_DELAY_MS = '1500';
+  await send('a long job');
+  await sleep(300);
+  const during = await info();
+  const again = stream(); const back = await again;
+  delete process.env.FAKE_DELAY_MS;
+  ok('you can leave the chat: the request keeps running on the server', during.busy && during.job && during.job.events.some(e => e.type === 'tool'));
+  ok('coming back shows the work in progress, then the answer', back.first && back.first.job && back.first.job.events.some(e => e.type === 'start') && back.events.some(e => e.type === 'text' && /a long job/.test(e.text)));
+  await idle();
+
+  await send('Un one-pager pour les cliniques ?', 'marketer', 'fr'); const j2 = await idle();
+  const lastReply = j2.history.at(-1), lastYou = j2.history.filter(m => m.from === 'you').at(-1);
   ok('a message sent directly to Marketing is answered by Marketing, in French', lastYou.to === 'marketer' && lastReply.from === 'marketer' && /one-pager/.test(lastReply.text) && /\(fr\)/.test(lastReply.text) && !/^\[/.test(lastReply.text));
   ok('the live feed shows who the owner wrote to', /You → marketer/.test(fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8')));
-  const bad = await sayTo('hi', 'janitor', 'en');
-  ok('a message to a role that does not exist is refused', bad.status === 409);
+  ok('a message to a role that does not exist is refused', (await send('hi', 'janitor')).status === 409);
+
   const refDir = path.join(BASE, 'company docs');
   fs.mkdirSync(refDir, { recursive: true });
-  const setDirs = dirs => fetch(`${base}/api/chat/dirs`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ dirs }) });
+  const setDirs = dirs => fetch(`${base}/api/chat/dirs`, { method: 'POST', headers: H, body: JSON.stringify({ dirs }) });
   ok('a folder that does not exist cannot be added', (await setDirs([path.join(BASE, 'nope')])).status === 400);
   ok('a real folder can be added as a readable folder', (await setDirs([refDir])).ok);
-  const withDir = await sayTo('What is in our docs?', 'auto', 'en');
-  const withDirTexts = withDir.text.split('\n').filter(Boolean).map(l => JSON.parse(l)).filter(e => e.type === 'text').map(e => e.text).join('\n');
-  ok('the AI gets read access to that folder and is told to only read it', withDirTexts.includes(`can read: ${refDir}`) && (await (await fetch(`${base}/api/chat`)).json()).readDirs[0] === refDir);
+  await send('What is in our docs?'); const j3 = await idle();
+  ok('the AI gets read access to that folder and is told to only read it', j3.history.at(-1).text.includes(`can read: ${refDir}`) && j3.readDirs[0] === refDir);
   await setDirs([]);
+
   const { splitByRole } = await import('../viewer/chat.mjs');
   const parts = splitByRole('[director]\nI give this to Marketing.\n[marketer] Here is the plan.\n- point 1\n[nobody]\nstays', 'director');
   ok('a reply with several voices is split by role', parts.length === 2 && parts[0].role === 'director' && parts[1].role === 'marketer' && /point 1/.test(parts[1].text) && /\[nobody\]/.test(parts[1].text));
+
   const sess = path.join(TMP, '.session.json');
   const keep = fs.existsSync(sess) ? fs.readFileSync(sess, 'utf8') : null;
   fs.writeFileSync(sess, JSON.stringify({ engine: 'demo', demo: true }));
-  const blocked = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` }, body: '{"message":"hi"}' });
-  ok('the chat is off in demo mode', blocked.status === 403);
+  ok('the chat is off in demo mode', (await send('hi')).status === 403);
   if (keep === null) fs.unlinkSync(sess); else fs.writeFileSync(sess, keep);
   const evil = await fetch(`${base}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{"message":"delete everything"}' });
-  ok('another website cannot talk to your Director', evil.status === 403);
+  ok('another website cannot talk to your team', evil.status === 403);
+}
+{
+  // Artifacts
+  r = run('tools/artifact.mjs', ['prospects', '--title', 'Fichier de prospection', '--lang', 'fr', '--as', 'sales']);
+  const arts = await (await fetch(`${base}/api/artifacts`)).json();
+  const a1 = arts.find(a => a.title === 'Fichier de prospection');
+  const page = a1 && fs.readFileSync(path.join(TMP, 'artifacts', a1.file), 'utf8');
+  ok('an interactive prospecting file is built from the real leads', r.code === 0 && a1 && a1.kind === 'html' && /Acme Software/.test(page) && /Exporter en CSV/.test(page) && /acme\.example\/about/.test(page));
+  const served = await fetch(`${base}/artifacts/${a1.file}`);
+  ok('artifacts are served in a sandbox (no access to your data or your team)', served.ok && /sandbox/.test(served.headers.get('content-security-policy') || '') && /connect-src 'none'/.test(served.headers.get('content-security-policy') || ''));
+  fs.writeFileSync(path.join(TMP, 'tmp', 'evil.html'), '<html><script src="https://evil.example/x.js"></script></html>');
+  r = run('tools/artifact.mjs', ['new', '--title', 'Evil', '--file', path.join(TMP, 'tmp', 'evil.html')]);
+  ok('a page loading scripts from an unknown site is refused', r.code !== 0 && /self-contained/.test(r.out));
+  fs.writeFileSync(path.join(TMP, 'tmp', 'chart.html'), '<html><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><body>ok</body></html>');
+  r = run('tools/artifact.mjs', ['new', '--title', 'Chart', '--file', path.join(TMP, 'tmp', 'chart.html'), '--as', 'strategist']);
+  ok('a page using a known CDN is accepted', r.code === 0);
+  const csv = run('tools/artifact.mjs', ['csv', '--title', 'Leads CSV']);
+  ok('leads can be delivered as a CSV artifact', csv.code === 0 && fs.readdirSync(path.join(TMP, 'artifacts')).some(f => f.startsWith('leads-csv') && f.endsWith('.csv')));
+  const ev2 = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
+  ok('each new artifact appears in the live feed (and in the chat)', (ev2.match(/"type":"artifact"/g) || []).length >= 3);
+}
+{
+  // The team talks
+  r = run('tools/say.mjs', ['--from', 'marketer', '--to', 'sales', 'Can we open on the hiring signal?']);
+  const said = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l)).filter(e => e.type === 'say').at(-1);
+  ok('a role can talk to another role', r.code === 0 && said && said.role === 'marketer' && said.to === 'sales' && /hiring signal/.test(said.text));
+  ok('talk from an unknown role is refused', run('tools/say.mjs', ['--from', 'janitor', '--to', 'sales', 'hi']).code !== 0);
+  ok('team messages stay short', run('tools/say.mjs', ['--from', 'sales', '--to', 'team', 'x'.repeat(800)]).code !== 0);
 }
 res = await fetch(`${base}/api/file?path=${encodeURIComponent('../../etc/passwd')}`);
 ok('files outside the workspace are not served', res.status === 404);

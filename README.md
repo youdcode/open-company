@@ -81,6 +81,20 @@ shows everything. You can also open the folder directly with your AI tool (`clau
 Each chat message runs your AI tool in this folder in headless mode, with your own login, and continues
 the same conversation. Log in to your AI tool once in a terminal before the first chat.
 
+**Leave and come back.** A request runs on your computer's server, not in the page: switch tabs, reload
+or close the page, and find the work in progress or the answer when you come back. Turn on "Notify me"
+to get a notification when the team has answered. **Dictation**: the microphone button uses your
+browser's speech recognition (Chrome, Edge, Safari).
+
+**The team talks.** When several roles are involved, they discuss in short messages you read live:
+proposals, objections, answers, then a decision. In a real test, Marketing wanted to promise fewer
+no-shows, Sales objected that the company profile forbids it, and the CEO decided.
+
+**Artifacts.** Ask for "an interactive prospecting file", a dashboard or a comparison table: the team
+delivers it in the Artifacts tab (and as a card in the chat). The prospecting file is built from the real
+data by a script: search, filters, sort, sources, draft messages, your notes, CSV export. Artifacts run
+in a sandbox: they cannot read your data or talk to your team.
+
 **Readable folders.** The team only reads this project. To let it learn from your own documents (a
 company handbook, a business plan...), add the folder under "Readable folders" in the chat: the team can
 read it, never write in it (tested with Claude Code). What it reads is sent to your AI tool.
@@ -113,7 +127,8 @@ are enforced by scripts, and why you approve everything. Reports from people tes
 A local web page that shows:
 
 - **Office**: the organization chart, who is working right now, and a live activity feed
-- **Chat**: talk to the whole team or to one role; handoffs between roles and each action appear as they happen (the only tab that uses your AI)
+- **Chat**: talk to the whole team or to one role; the team's discussion, handoffs and each action appear as they happen (the only tab that uses your AI)
+- **Artifacts**: interactive pages, tables and files the team made for you
 - **Pipeline**: every lead with its score, signals, next action and sources
 - **Outreach**: drafted messages with Approve and Reject buttons
 - **Finance**: quotes and invoices; you issue them (which gives the next number), mark them paid, print to PDF

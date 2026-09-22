@@ -19,6 +19,7 @@ export const P = {
   messages: path.join(WS, 'org', 'messages'),
   events: path.join(WS, 'org', 'events.jsonl'),
   session: path.join(WS, '.session.json'),
+  artifacts: path.join(WS, 'artifacts'),
 };
 
 export const LEAD_COLUMNS = [
@@ -136,9 +137,9 @@ export function stringifyFrontMatter(data, body) {
 }
 
 // ---------- Events (the live feed) ----------
-export function logEvent(role, type, text, file = '') {
+export function logEvent(role, type, text, file = '', extra = {}) {
   const rel = file ? path.relative(ROOT, path.resolve(file)).split(path.sep).join('/') : '';
-  const line = JSON.stringify({ ts: now(), role: role || 'director', type, text, path: rel });
+  const line = JSON.stringify({ ts: now(), role: role || 'director', type, text, path: rel, ...extra });
   fs.mkdirSync(path.dirname(P.events), { recursive: true });
   fs.appendFileSync(P.events, line + '\n');
 }

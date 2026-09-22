@@ -42,7 +42,8 @@ export function routingNote(to = 'auto', lang = 'en', dirs = []) {
     ? 'Reply in French, the owner\'s language, and write the board tasks, handoffs and log lines of this request in French too.'
     : 'Reply in English.';
   const refs = dirs.length ? ` Read-only reference folders the owner gave you: ${dirs.join(', ')}. Read them when useful, never write there, and cite the file path as the source of any fact taken from them.` : '';
-  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
+  const team = ' When several roles are involved, let them discuss with tools/say.mjs (short messages to each other, which the owner reads live): proposals, objections, answers, then a decision. When the owner asks for a file, a list, a table, a dashboard or a page, deliver it as an artifact with tools/artifact.mjs (skill artifact).';
+  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs}${team} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
 }
 
 // "[marketer]\nHello\n[director]\nDone" -> [{role: 'marketer', text: 'Hello'}, {role: 'director', text: 'Done'}]
@@ -121,7 +122,7 @@ export function chatInfo() {
   try { session = JSON.parse(readText(P.session, '{}')); } catch {}
   const engine = [st.engine, session.engine].find(e => e && installed.includes(e)) || installed[0] || '';
   const history = readText(HISTORY).split('\n').filter(Boolean).slice(-200).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-  return { engine, installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, readDirs: st.readDirs || [] };
+  return { engine, installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, job: currentJob(), readDirs: st.readDirs || [] };
 }
 
 // Folders the team may READ (never write): for example the documents of your company.
@@ -152,9 +153,15 @@ export function newConversation() {
 }
 
 let running = null;
+// The current request runs on the server, not in the page: the owner can leave the chat, reload or
+// close the tab, and find the answer (or the work in progress) when coming back.
+let job = null;
+const listeners = new Set();
+export function onChat(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+function push(ev) { if (job) job.events.push(ev); for (const fn of listeners) { try { fn(ev); } catch {} } }
+export const currentJob = () => (job && !job.done ? { id: job.id, to: job.to, text: job.text, started: job.started, engine: job.engine, events: job.events } : null);
 export const stopChat = () => { if (running) { running.kill('SIGTERM'); return true; } return false; };
 
-// Runs one message. `emit` receives {type: text|tool|error|done, text}.
 // Throws before anything starts, so the server can answer with a clear error.
 export function checkChat(message, to = 'auto') {
   if (running) throw new Error('the team is still working on your previous message');
@@ -163,11 +170,12 @@ export function checkChat(message, to = 'auto') {
   if (!chatInfo().engine) throw new Error('no AI tool found: install Claude Code, Codex or OpenCode, then log in once in a terminal');
 }
 
-export function sendChat(message, emit, { to = 'auto', lang = 'en' } = {}) {
+// Starts one request in the background and returns its id. Events (start, tool, text, error, done)
+// go to every page subscribed with onChat().
+export function sendChat(message, { to = 'auto', lang = 'en' } = {}) {
   checkChat(message, to);
   const text = String(message || '').trim();
   const { engine } = chatInfo();
-  if (!engine) throw new Error('no AI tool found: install Claude Code, Codex or OpenCode, then log in once in a terminal');
   const E = CHAT_ENGINES[engine];
   const st = readState();
   const sid = st.sessions?.[engine];
@@ -185,6 +193,8 @@ export function sendChat(message, emit, { to = 'auto', lang = 'en' } = {}) {
     cwd: ROOT, env: { ...process.env, OPEN_COMPANY_NO_OPEN: '1' }, stdio: ['pipe', 'pipe', 'pipe'], shell: win,
   });
   running = child;
+  job = { id: Date.now().toString(36), to, text, started: now(), engine, events: [], done: false };
+  push({ type: 'start', id: job.id, to, text });
   if (!E.promptAsArg) child.stdin.end(prompt); else child.stdin.end();
 
   const replies = [];
@@ -196,8 +206,8 @@ export function sendChat(message, emit, { to = 'auto', lang = 'en' } = {}) {
       saveState(s);
       return;
     }
-    if (ev.type === 'text') replies.push(ev.text);
-    emit(ev);
+    if (ev.type === 'text') replies.push({ ts: now(), text: ev.text });
+    push(ev);
   };
   child.stdout.on('data', d => {
     buf += d;
@@ -209,17 +219,22 @@ export function sendChat(message, emit, { to = 'auto', lang = 'en' } = {}) {
     }
   });
   child.stderr.on('data', d => { errText += d; });
-  child.on('error', e => { running = null; emit({ type: 'error', text: e.message }); emit({ type: 'done' }); });
+  const finish = () => { const id = job.id; job.done = true; push({ type: 'done', id }); };
+  child.on('error', e => { running = null; push({ type: 'error', text: e.message }); finish(); });
   child.on('close', code => {
     running = null;
-    const reply = replies.join('\n\n').trim();
-    for (const part of reply ? splitByRole(reply, to === 'auto' ? 'director' : to) : [])
-      fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: part.role, engine, text: part.text }) + '\n');
+    const reply = replies.map(r => r.text).join('\n\n').trim();
+    let role = to === 'auto' ? 'director' : to;
+    for (const r of replies) for (const part of splitByRole(r.text, role)) {
+      fs.appendFileSync(HISTORY, JSON.stringify({ ts: r.ts, from: part.role, engine, text: part.text }) + '\n');
+      role = part.role;
+    }
     if (!reply && code !== 0) {
       const hint = /log ?in|auth|unauthori|credential/i.test(errText) ? `Log in once: open a terminal in this folder and run "${E.bin}".` : short(errText.split('\n').filter(Boolean).pop() || `the AI tool stopped (code ${code})`);
-      emit({ type: 'error', text: hint });
+      push({ type: 'error', text: hint });
+      fs.appendFileSync(HISTORY, JSON.stringify({ ts: now(), from: 'system', text: hint }) + '\n');
     }
-    emit({ type: 'done' });
+    finish();
   });
-  return engine;
+  return job.id;
 }

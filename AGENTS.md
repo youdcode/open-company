@@ -31,6 +31,7 @@ If the human's first message is just `start`, that is the signal to do the steps
 | `proposal <company>` | Proposal after a meeting, with its quote | proposal |
 | `quote for <client>` / `invoice <client>` | Quote or invoice draft with exact totals | quote-invoice |
 | `one-pager <segment>` | One-page presentation of the offer | one-pager |
+| "a file / table / dashboard / page with..." | An artifact the owner can open, filter and download | artifact |
 | `status` | Pipeline and board summary in 6 lines | (you) |
 | `sprint "<goal>"` | The whole company works on one goal | sprint |
 | `export` | Run `node tools/export.mjs` for approved messages | (you) |
@@ -58,6 +59,17 @@ with that brief: goal, input files (paths), output file (path), done criteria, a
 example "max 10 web searches"). If not, read `roles/<role>.md`, do the task as that role, then come
 back to director mode. Either way, the role logs its start and end, moves its board card, and
 finishes with a handoff back.
+
+**The team talks.** When a request involves several roles, they discuss it in short messages with
+`node tools/say.mjs --from <role> --to <role|team|you> "..."` (4 lines max): the CEO frames the
+question, the roles propose, object, ask and answer each other by name, and the CEO concludes. The
+owner reads it live. Real content only: a point, a doubt, a fact with its source, a decision. 3 to 8
+messages per request is enough.
+
+**Artifacts.** When the owner asks for a file, a list, a table, a dashboard or a page, deliver it as an
+artifact (skill artifact): `node tools/artifact.mjs prospects --title "..." --lang <owner language>`
+builds an interactive prospecting file from the real data; `node tools/artifact.mjs new --title "..."
+--file workspace/tmp/x.html` publishes a page you wrote. It appears in the Artifacts tab and in the chat.
 
 **The Chat tab.** The owner can write to the whole company or to one role from the live office. Each
 message ends with a note in parentheses saying who should answer and in which language: follow it.

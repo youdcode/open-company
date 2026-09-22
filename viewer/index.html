@@ -145,6 +145,16 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .quick{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 0;align-items:center}.quick .lbl{font-size:12px;color:var(--muted);margin-right:2px}
 .quick button{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:4px 10px;border-radius:999px;font-size:12.5px;font-family:var(--mono)}
 .quick button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-family:var(--font);font-weight:600}
+.say{align-self:flex-start;max-width:78%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13.5px}
+.say .who-line{margin-bottom:2px}.say .md p{margin:.2em 0}
+.artcard{align-self:flex-start;display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;max-width:78%}
+.toast{position:fixed;right:20px;bottom:20px;z-index:30;display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.15);border-radius:12px;padding:12px 14px}
+.btn.mic{padding:7px 10px}.btn.mic.rec{background:#dc2626;border-color:#dc2626;color:#fff;animation:blink 1.2s infinite}
+.arts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}.art{padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px}.art:hover{border-color:var(--ink)}
+.art .k{font-family:var(--mono);font-size:11px;color:var(--muted)}
+#art-modal{position:fixed;inset:0;background:rgba(10,10,12,.45);z-index:20;display:none;padding:28px}#art-modal.open{display:flex}
+#art-modal .box{flex:1;display:flex;flex-direction:column;background:var(--panel);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+#art-modal .bar{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}#art-modal iframe{flex:1;border:0;background:#fff}
 .bub .to-line{font-size:11px;opacity:.7;margin-bottom:2px}
 @media (max-width:1100px){.roles{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.grid2{grid-template-columns:1fr}.feed{max-height:none}.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
@@ -159,6 +169,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
     <nav id="nav">
       <a href="#office"><span data-i18n="v_office">Office</span> <span class="n" id="n-office"></span></a>
       <a href="#chat"><span data-i18n="v_chat">Chat</span> <span class="n" id="n-chat"></span></a>
+      <a href="#artifacts"><span data-i18n="v_artifacts">Artifacts</span> <span class="n" id="n-artifacts"></span></a>
       <a href="#pipeline"><span data-i18n="v_pipeline">Pipeline</span> <span class="n" id="n-pipeline"></span></a>
       <a href="#outreach"><span data-i18n="v_outreach">Outreach</span> <span class="n" id="n-outreach"></span></a>
       <a href="#finance"><span data-i18n="v_finance">Finance</span> <span class="n" id="n-finance"></span></a>
@@ -173,6 +184,9 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
   </aside>
   <main id="main"></main>
 </div>
+<div id="art-modal" onclick="if(event.target===this)closeArtifact()"><div class="box"><div class="bar"><b id="art-title" style="flex:1"></b>
+  <a class="btn" id="art-open" target="_blank" rel="noopener" data-i18n="openTab">Open in a tab</a><a class="btn" id="art-dl" data-i18n="download">Download</a><button class="btn" onclick="closeArtifact()" data-i18n="close">Close</button></div>
+  <iframe id="art-frame" sandbox="allow-scripts allow-downloads allow-popups allow-forms allow-modals"></iframe></div></div>
 <div class="drawer" id="drawer"><div class="dh"><span id="d-path"></span><button class="btn" onclick="closeDrawer()" data-i18n="close">Close</button></div><div class="db md" id="d-body"></div></div>
 <script>
 const $ = s => document.querySelector(s);
@@ -218,6 +232,9 @@ const I18N = {
     demoChat: 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.', couldNotStart: 'The team could not start.',
     noEngine: 'no AI tool found', sugSetup: ['setup', 'What can you do for me?'], sugMain: ['status', 'What should I do today?', 'prospect 5', 'qualify', 'draft', 'followups'],
     newConvMarker: 'New conversation',
+    v_artifacts: 'Artifacts', s_artifacts: 'Files, tables and interactive pages the team made for you', noArtifacts: 'Nothing yet. In the <a href="#chat">Chat</a>, ask for example: "Prepare an interactive prospecting file".',
+    newArtifact: 'new artifact', everyone: 'the team', doneToast: 'The team has answered.', see: 'See', notifOn: 'Notify me', micTip: 'Dictation (uses your browser speech recognition)',
+    askFile: 'Prepare an interactive prospecting file', openTab: 'Open in a tab', download: 'Download',
     setupNow: 'Set up the company', quick: 'Shortcuts', setupPending: 'Your company is not set up yet:',
     dirs: n => `Readable folders${n ? ` (${n})` : ''}`, dirsHint: 'The team can read these folders, never write in them. What it reads is sent to your AI tool, like everything it works on.',
     dirAdd: 'Add', dirPh: 'Full path of a folder, for example /Users/you/Documents/my-company', dirNone: 'No folder yet: the team only reads this project.', remove: 'Remove',
@@ -258,6 +275,9 @@ const I18N = {
     demoChat: "Le chat est désactivé en mode démo : rien n'est réel ici. Lancez votre propre entreprise avec <code>./start</code>.", couldNotStart: "L'équipe n'a pas pu démarrer.",
     noEngine: 'aucune IA trouvée', sugSetup: ['setup', 'Que pouvez-vous faire pour moi ?'], sugMain: ['status', "Que dois-je faire aujourd'hui ?", 'prospect 5', 'qualify', 'draft', 'followups'],
     newConvMarker: 'Nouvelle conversation',
+    v_artifacts: 'Artefacts', s_artifacts: "Les fichiers, tableaux et pages interactives que l'équipe a préparés pour vous", noArtifacts: 'Rien pour l\'instant. Dans le <a href="#chat">Chat</a>, demandez par exemple : « Prépare-moi un fichier de prospection interactif ».',
+    newArtifact: 'nouvel artefact', everyone: "toute l'équipe", doneToast: "L'équipe a répondu.", see: 'Voir', notifOn: "M'avertir", micTip: 'Dictée (utilise la reconnaissance vocale de votre navigateur)',
+    askFile: 'Prépare-moi un fichier de prospection interactif', openTab: 'Ouvrir dans un onglet', download: 'Télécharger',
     setupNow: "Configurer l'entreprise", quick: 'Raccourcis', setupPending: "Votre entreprise n'est pas encore configurée :",
     dirs: n => `Dossiers lisibles${n ? ` (${n})` : ''}`, dirsHint: "L'équipe peut lire ces dossiers, jamais y écrire. Ce qu'elle lit est envoyé à votre outil d'IA, comme tout ce sur quoi elle travaille.",
     dirAdd: 'Ajouter', dirPh: "Chemin complet d'un dossier, par exemple /Users/vous/Documents/mon-entreprise", dirNone: "Aucun dossier : l'équipe ne lit que ce projet.", remove: 'Retirer',
@@ -387,7 +407,7 @@ function feedItem(e, fresh) {
   const key = e.ts + e.role + e.text;
   const isNew = fresh && !seen.has(key); seen.add(key);
   return `<div class="ev ${isNew ? 'new' : ''}">${av(e.role)}<div class="m"><div class="h"><b>${esc(roleTitle(e.role))}</b>${ago(e.ts)}</div>
-    <div class="x">${esc(e.text)}</div>${e.path ? `<div class="f" onclick="openFile(${arg(e.path)})">${esc(e.path.replace(/^(workspace|\.demo)\//, ''))}</div>` : ''}</div></div>`;
+    <div class="x">${esc(e.text)}</div>${e.type === 'artifact' && e.artifact ? `<div class="f" onclick="openArtifact(${arg(e.artifact)})">` : e.path ? `<div class="f" onclick="openFile(${arg(e.path)})">${esc(e.path.replace(/^(workspace|\.demo)\//, ''))}</div>` : ''}</div></div>`;
 }
 function office(fresh) {
   const director = S.roles.find(r => r.id === 'director');
@@ -430,17 +450,18 @@ function outreach() {
   <p class="muted small">${t('outreachFoot')}</p>`;
 }
 
-// ---------- chat: talk to the team, or to one role ----------
-let chat = { info: null, busy: false, to: (() => { try { return localStorage.getItem('oc-to') || 'auto'; } catch { return 'auto'; } })(), shownTeam: new Set(), reply: null };
-const isTeam = e => e.type === 'handoff' || (e.type === 'task' && /^Done:/.test(e.text || ''));
+// ---------- chat: talk to the team, or to one role. The work runs on the server: leave and come back. ----------
+let chat = { info: null, busy: false, to: (() => { try { return localStorage.getItem('oc-to') || 'auto'; } catch { return 'auto'; } })(), shownTeam: new Set(), reply: null, live: null, unread: 0 };
+const isTeam = e => e.type === 'handoff' || e.type === 'say' || e.type === 'artifact' || (e.type === 'task' && /^Done:/.test(e.text || ''));
 function chatView() {
   return `<div class="card chat"><div class="chat-bar"><span class="muted small">${t('ai')}</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
-    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
+    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="notif-btn" onclick="askNotif()"></button><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
     <div class="dirs" id="dirs"></div>
     <div class="chat-log" id="chat-log"></div>
     <div class="quick" id="chat-quick"></div>
     <div class="to" id="chat-to"></div>
     <div class="composer"><textarea id="chat-input" rows="1"></textarea>
+    <button class="btn mic" id="chat-mic" onclick="dictate()" title="${esc(t('micTip'))}">🎙</button>
     <button class="btn primary" id="chat-send" onclick="chatSend()">${t('send')}</button><button class="btn" id="chat-stop" style="display:none" onclick="chatStop()">${t('stop')}</button></div></div>
   <p class="muted small">${t('chatFoot')}</p>`;
 }
@@ -457,7 +478,7 @@ function renderQuick() {
   const q = $('#chat-quick'); if (!q) return;
   if (chat.info?.demo) { q.innerHTML = ''; return; }
   if (S.company.setup !== 'done') { q.innerHTML = `<span class="lbl">${t('setupPending')}</span><button class="primary" onclick="chatSend('setup')">${t('setupNow')}</button>`; return; }
-  const items = ['status', 'prospect 5', 'qualify', 'draft', 'followups', 'replies', 'export'];
+  const items = ['status', 'prospect 5', 'qualify', 'draft', 'followups', 'replies', 'export', t('askFile')];
   q.innerHTML = `<span class="lbl">${t('quick')}</span>` + items.map(x => `<button onclick="chatSend(${arg(x)})">${esc(x)}</button>`).join('');
 }
 function renderDirs() {
@@ -487,14 +508,22 @@ function bubble(from, html, extra = '') {
   log.appendChild(d); log.scrollTop = log.scrollHeight;
   return d;
 }
-function teamLine(e) {
+function teamNode(e) {
+  const d = document.createElement('div');
+  if (e.type === 'artifact') {
+    d.className = 'artcard';
+    d.innerHTML = `<div class="ai">${av(e.role)}</div><div style="min-width:0"><div class="muted small">${esc(roleTitle(e.role))} · ${t('newArtifact')}</div><b>${esc(e.title || e.text)}</b></div><button class="btn primary">${t('open')}</button>`;
+    d.onclick = () => openArtifact(e.artifact);
+    return d;
+  }
+  if (e.type === 'say') {
+    d.className = 'say';
+    d.innerHTML = `<div class="who-line">${av(e.role)}<b>${esc(roleTitle(e.role))}</b>${e.to && e.to !== 'team' ? ` → ${av(e.to)}<b>${esc(e.to === 'you' ? (LANG === 'fr' ? 'Vous' : 'You') : roleTitle(e.to))}</b>` : e.to === 'team' ? ` → <b>${t('everyone')}</b>` : ''}</div><div class="md">${md(e.text)}</div>`;
+    return d;
+  }
   let from = e.role, to = '', text = e.text;
   const h = /^→\s*([a-z-]+):\s*(.*)$/.exec(e.text || '');
-  const task = /^New task for ([a-z-]+):\s*(.*)$/.exec(e.text || '');
   if (e.type === 'handoff' && h) { to = h[1]; text = h[2]; }
-  else if (e.type === 'task' && task) { to = task[1]; text = task[2]; }
-  else if (e.type === 'task') { to = ''; }
-  const d = document.createElement('div');
   d.className = 'team';
   d.innerHTML = `${av(from)}<b>${esc(roleTitle(from))}</b>${to ? ` → ${av(to)}<b>${esc(roleTitle(to))}</b>` : ''}<span class="s">· ${esc(text)}</span>`;
   if (e.path) d.onclick = () => openFile(e.path);
@@ -505,9 +534,10 @@ function addTeam(e) {
   if (chat.shownTeam.has(key)) return;
   chat.shownTeam.add(key);
   const log = $('#chat-log'); if (!log) return;
-  const line = teamLine(e);
-  if (chat.busy && chat.reply && chat.reply.parentNode === log) log.insertBefore(line, chat.reply);
-  else log.appendChild(line);
+  const node = teamNode(e);
+  const think = chat.live?.b?.querySelector('.thinking');
+  log.appendChild(node);
+  if (chat.live) { chat.live.broken = true; if (think) { think.remove(); node.insertAdjacentHTML('afterend', '<div class="thinking live-think">…</div>'); } }
   log.scrollTop = log.scrollHeight;
 }
 function chatSuggestions() {
@@ -515,17 +545,60 @@ function chatSuggestions() {
   const items = t(setup ? 'sugSetup' : 'sugMain');
   $('#chat-log').innerHTML = `<div class="sugg">${items.map(x => `<button onclick="chatSend(${arg(x)})">${esc(x)}</button>`).join('')}</div>`;
 }
+// The bubble of the request in progress: rebuilt from the server's events when you come back.
+function liveBubble(job) {
+  let role = job.to && job.to !== 'auto' ? job.to : 'director';
+  let b = bubble(role, '<div class="body"></div><div class="thinking">…</div>');
+  chat.reply = b;
+  const st = { role, b, body: b.querySelector('.body') };
+  chat.live = st;
+  for (const ev of job.events || []) applyEvent(ev);
+}
+function applyEvent(ev) {
+  const st = chat.live; if (!st || !$('#chat-log')) return;
+  if (st.broken && (ev.type === 'text' || ev.type === 'tool')) {
+    // the team talked in between: continue in a new bubble, below, so the order stays true
+    document.querySelectorAll('.live-think').forEach(x => x.remove());
+    st.b.querySelector('.thinking')?.remove();
+    if (!st.body.textContent.trim()) st.b.remove();
+    st.b = bubble(st.role, '<div class="body"></div><div class="thinking">…</div>'); chat.reply = st.b;
+    st.body = st.b.querySelector('.body'); st.broken = false;
+  }
+  if (ev.type === 'tool') st.body.insertAdjacentHTML('beforeend', `<div class="tool">${esc(ev.text)}</div>`);
+  if (ev.type === 'error') st.body.insertAdjacentHTML('beforeend', `<div class="err">${esc(ev.text)}</div>`);
+  if (ev.type === 'text') {
+    // A reply part that starts with [role] is spoken by that role: it gets its own bubble.
+    for (const part of String(ev.text).split(/\n(?=\s*\[[a-z-]+\])/)) {
+      const m = /^\s*\[([a-z-]+)\][ \t]*\n?/.exec(part);
+      let content = part;
+      if (m && S.roles.some(r => r.id === m[1])) {
+        content = part.slice(m[0].length);
+        if (m[1] !== st.role) {
+          st.b.querySelector('.thinking')?.remove();
+          if (!st.body.textContent.trim()) st.b.remove();
+          st.role = m[1];
+          st.b = bubble(st.role, '<div class="body"></div><div class="thinking">…</div>'); chat.reply = st.b;
+          st.body = st.b.querySelector('.body');
+        }
+      }
+      if (content.trim()) st.body.insertAdjacentHTML('beforeend', `<div class="md">${md(content)}</div>`);
+    }
+  }
+  const log = $('#chat-log'); if (log) log.scrollTop = log.scrollHeight;
+}
 async function chatInit() {
   const r = await fetch('/api/chat'); chat.info = await r.json();
   const sel = $('#chat-engine'); if (!sel) return;
   sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || `<option>${t('noEngine')}</option>`;
-  recipients(); renderDirs(); renderQuick();
-  const log = $('#chat-log'); log.innerHTML = ''; chat.shownTeam = new Set();
+  recipients(); renderDirs(); renderQuick(); notifButton(); micSetup();
+  chat.unread = 0; badge();
+  const log = $('#chat-log'); log.innerHTML = ''; chat.shownTeam = new Set(); chat.reply = null; chat.live = null;
   if (chat.info.demo) { bubble('system', t('demoChat')); $('#chat-input').disabled = true; $('#chat-send').disabled = true; return; }
-  const hist = chat.info.history.slice(-60);
-  if (!hist.length) { chatSuggestions(); }
+  const hist = chat.info.history.slice(-80);
+  const job = chat.info.job;
+  if (!hist.length && !job) chatSuggestions();
   else {
-    const since = Date.parse(hist[0].ts);
+    const since = Date.parse((hist[0] || job).ts || (job && job.started));
     const team = S.events.filter(e => isTeam(e) && Date.parse(e.ts) >= since).map(e => ({ ...e, _team: true }));
     const all = [...hist, ...team].sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
     for (const m of all) {
@@ -534,10 +607,11 @@ async function chatInit() {
       else if (m.from === 'system') bubble('system', esc(m.text === 'New conversation' ? t('newConvMarker') : m.text));
       else bubble(m.from, md(m.text));
     }
+    if (job) liveBubble(job);
   }
   S.events.forEach(e => { if (isTeam(e)) chat.shownTeam.add(e.ts + e.role + e.text); });
-  setBusy(chat.info.busy);
-  if (pendingSend && !chat.info.busy) { const x = pendingSend; pendingSend = ''; setTimeout(() => chatSend(x), 0); }
+  setBusy(!!job);
+  if (pendingSend && !job) { const x = pendingSend; pendingSend = ''; setTimeout(() => chatSend(x), 0); }
   const ta = $('#chat-input');
   ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } };
   ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(180, ta.scrollHeight) + 'px'; };
@@ -545,65 +619,107 @@ async function chatInit() {
 }
 function setBusy(b) {
   chat.busy = b;
+  $('#n-chat').textContent = b ? '●' : (chat.unread ? String(chat.unread) : '');
   if (!$('#chat-send')) return;
   $('#chat-send').style.display = b ? 'none' : ''; $('#chat-stop').style.display = b ? '' : 'none';
   $('#chat-status').textContent = b ? t('workingStatus') : '';
-  $('#n-chat').textContent = b ? '●' : '';
 }
 async function chatSend(preset) {
   if (chat.busy) return;
   const ta = $('#chat-input');
   const text = (preset || ta.value).trim(); if (!text) return;
+  stopDictation();
   ta.value = ''; ta.style.height = 'auto';
   const to = chat.to;
-  bubble('you', esc(text), to !== 'auto' ? `<div class="to-line">→ ${esc(roleTitle(to))}</div>` : '');
-  let role = to === 'auto' ? 'director' : to;
-  let b = bubble(role, '<div class="body"></div><div class="thinking">…</div>');
-  chat.reply = b;
-  let body = b.querySelector('.body');
-  const think = () => b.querySelector('.thinking');
-  setBusy(true);
-  try {
-    const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text, to, lang: LANG }) });
-    if (!r.ok || !r.body) { const e = await r.json().catch(() => ({})); throw new Error(e.error || t('couldNotStart')); }
-    const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = '';
-    for (;;) {
-      const { value, done } = await reader.read(); if (done) break;
-      buf += dec.decode(value, { stream: true });
-      let i;
-      while ((i = buf.indexOf('\n')) >= 0) {
-        const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue;
-        const ev = JSON.parse(line);
-        if (ev.type === 'tool') body.insertAdjacentHTML('beforeend', `<div class="tool">${esc(ev.text)}</div>`);
-        if (ev.type === 'text') {
-          // A reply part that starts with [role] is spoken by that role: it gets its own bubble.
-          for (const part of String(ev.text).split(/\n(?=\s*\[[a-z-]+\])/)) {
-            const m = /^\s*\[([a-z-]+)\][ \t]*\n?/.exec(part);
-            let content = part;
-            if (m && S.roles.some(r => r.id === m[1])) {
-              content = part.slice(m[0].length);
-              if (m[1] !== role) {
-                const hasContent = body.textContent.trim();
-                think()?.remove();
-                if (!hasContent) b.remove();
-                role = m[1];
-                b = bubble(role, '<div class="body"></div><div class="thinking">…</div>'); chat.reply = b;
-                body = b.querySelector('.body');
-              }
-            }
-            if (content.trim()) body.insertAdjacentHTML('beforeend', `<div class="md">${md(content)}</div>`);
-          }
-        }
-        if (ev.type === 'error') body.insertAdjacentHTML('beforeend', `<div class="err">${esc(ev.text)}</div>`);
-        const log = $('#chat-log'); if (log) log.scrollTop = log.scrollHeight;
-      }
-    }
-  } catch (e) { body.insertAdjacentHTML('beforeend', `<div class="err">${esc(e.message)}</div>`); }
-  think()?.remove(); chat.reply = null; setBusy(false); $('#chat-input')?.focus();
+  const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text, to, lang: LANG }) });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); bubble('system', `<span class="err">${esc(e.error || t('couldNotStart'))}</span>`); return; }
+  // The server announces the start on the chat stream; the bubbles are drawn from there.
 }
+// One stream for the whole page: the chat keeps receiving even when you are on another tab.
+function chatStream() {
+  const es = new EventSource('/api/chat/stream');
+  es.addEventListener('chat', e => {
+    const ev = JSON.parse(e.data);
+    const onChat = view === 'chat' && $('#chat-log');
+    if (ev.type === 'start') {
+      setBusy(true);
+      if (onChat) {
+        bubble('you', esc(ev.text), ev.to && ev.to !== 'auto' ? `<div class="to-line">→ ${esc(roleTitle(ev.to))}</div>` : '');
+        liveBubble({ to: ev.to, events: [] });
+      }
+      return;
+    }
+    if (ev.type === 'done') {
+      chat.live?.b?.querySelector('.thinking')?.remove(); document.querySelectorAll('.live-think').forEach(x => x.remove());
+      if (chat.live && !chat.live.body.textContent.trim()) chat.live.b.remove();
+      chat.reply = null; chat.live = null;
+      setBusy(false);
+      if (!onChat || document.hidden) notifyDone();
+      return;
+    }
+    if (onChat) applyEvent(ev);
+  });
+}
+function notifyDone() {
+  chat.unread++; badge();
+  const msg = t('doneToast');
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<b>${esc(msg)}</b><a class="btn primary" href="#chat" onclick="this.parentNode.remove()">${t('see')}</a>`;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 12000);
+  try { if ('Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification(S.company.name || 'Open Company', { body: msg }); } catch {}
+}
+function badge() {
+  if ($('#n-chat') && !chat.busy) $('#n-chat').textContent = chat.unread ? String(chat.unread) : '';
+  const base = document.title.replace(/^\(\d+\) /, '');
+  document.title = chat.unread ? `(${chat.unread}) ${base}` : base;
+}
+function notifButton() {
+  const b = $('#notif-btn'); if (!b) return;
+  if (!('Notification' in window) || Notification.permission === 'granted') { b.style.display = 'none'; return; }
+  b.textContent = t('notifOn');
+}
+async function askNotif() { try { await Notification.requestPermission(); } catch {} notifButton(); }
 async function chatStop() { await fetch('/api/chat/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); }
 async function chatEngine(id) { await fetch('/api/chat/engine', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ engine: id }) }); }
 async function chatNew() { if (chat.busy) return; await fetch('/api/chat/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); chatInit(); }
+
+// ---------- dictation (the browser's own speech recognition) ----------
+let rec = null;
+function micSetup() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const b = $('#chat-mic'); if (!b) return;
+  if (!SR) { b.style.display = 'none'; return; }
+  b.classList.toggle('rec', !!rec);
+}
+function stopDictation() { if (rec) { try { rec.stop(); } catch {} rec = null; micSetup(); } }
+function dictate() {
+  if (rec) return stopDictation();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+  const ta = $('#chat-input'); const before = ta.value ? ta.value.replace(/\s*$/, ' ') : '';
+  rec = new SR(); rec.lang = LANG === 'fr' ? 'fr-FR' : 'en-US'; rec.continuous = true; rec.interimResults = true;
+  rec.onresult = e => { let txt = ''; for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript; ta.value = before + txt; ta.oninput?.(); };
+  rec.onend = () => { rec = null; micSetup(); };
+  rec.onerror = () => { rec = null; micSetup(); };
+  rec.start(); micSetup();
+}
+
+// ---------- artifacts ----------
+function artifacts() {
+  const A = S.artifacts || [];
+  return A.length ? `<div class="arts">${A.map(a => `<div class="card art" onclick="openArtifact(${arg(a.file)})"><div class="k">${esc(a.kind.toUpperCase())}</div><b>${esc(a.title)}</b>
+    <div class="muted small">${esc(roleTitle(a.author))} · ${ago(a.created)}${a.description ? ' · ' + esc(a.description) : ''}</div></div>`).join('')}</div>`
+    : `<div class="card empty">${t('noArtifacts')}</div>`;
+}
+function openArtifact(file) {
+  const a = (S.artifacts || []).find(x => x.file === file) || { title: file, file, kind: file.split('.').pop() };
+  const src = `/artifacts/${encodeURIComponent(file)}`;
+  $('#art-title').textContent = a.title;
+  $('#art-open').href = src; $('#art-dl').href = `${src}?download=1`;
+  $('#art-frame').src = a.kind === 'md' ? 'about:blank' : src;
+  if (a.kind === 'md') fetch(`/api/file?path=${encodeURIComponent('workspace/artifacts/' + file)}`).then(r => r.json()).then(f => { $('#art-frame').srcdoc = `<body style="font:15px/1.6 system-ui;max-width:760px;margin:30px auto;padding:0 20px">${md(f.content)}</body>`; });
+  $('#art-modal').classList.add('open');
+}
+function closeArtifact() { $('#art-modal').classList.remove('open'); $('#art-frame').src = 'about:blank'; }
 
 const money = (x, c) => { try { return new Intl.NumberFormat(LANG === 'fr' ? 'fr-FR' : undefined, { style: 'currency', currency: c || 'EUR' }).format(x); } catch { return `${x} ${c}`; } };
 let armed = '';
@@ -653,7 +769,7 @@ function files() {
     : `<div class="empty">${t('noFiles')}</div>`}</div>`;
 }
 
-const VIEWS = { office, chat: chatView, pipeline, outreach, finance, board, messages, files };
+const VIEWS = { office, chat: chatView, artifacts, pipeline, outreach, finance, board, messages, files };
 
 function render(fresh = []) {
   if (!S) return;
@@ -664,6 +780,7 @@ function render(fresh = []) {
   $('#since').textContent = S.session.started ? t('since', new Date(S.session.started).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
   $('#n-pipeline').textContent = S.leads.length || ''; $('#n-outreach').textContent = S.drafts.filter(d => d.status === 'draft').length || '';
   $('#n-finance').textContent = (S.finance || []).filter(d => d.status === 'draft').length || '';
+  $('#n-artifacts').textContent = (S.artifacts || []).length || '';
   $('#n-board').textContent = (S.board.Todo.length + S.board.Doing.length) || ''; $('#n-messages').textContent = S.messages.length || ''; $('#n-files').textContent = S.files.length || '';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + view));
   if (view === 'chat' && $('#chat-log')) { // keep the conversation on screen, add what the team says to each other
@@ -709,7 +826,7 @@ async function openLead(id) {
   $('#drawer').classList.add('open');
 }
 function closeDrawer() { $('#drawer').classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeArtifact(); } });
 
 // ---------- live ----------
 function route() { view = (location.hash.slice(1) in VIEWS) ? location.hash.slice(1) : 'office'; render(); }
@@ -725,7 +842,7 @@ const LIVE = new URLSearchParams(location.search).get('live') !== '0';
 { const l = new URLSearchParams(location.search).get('lang'); if (l === 'fr' || l === 'en') LANG = l; }
 applyStatic();
 $('#live-t').textContent = t('connecting');
-load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); if (LIVE) connect(); else { $('#live').classList.add('on'); $('#live-t').textContent = t('live'); } });
+load().then(() => { S.events.forEach(e => seen.add(e.ts + e.role + e.text)); route(); if (LIVE) { connect(); chatStream(); } else { $('#live').classList.add('on'); $('#live-t').textContent = t('live'); } });
 setInterval(() => { if (view === 'office' && S) render(); }, 30000);
 
 </script>

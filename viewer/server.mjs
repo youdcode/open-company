@@ -13,12 +13,13 @@ import {
 import { parseBoard } from '../tools/board.mjs';
 import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
 import { listDocs, setDocStatus, htmlOf, billing } from '../tools/invoice.mjs';
-import { chatInfo, sendChat, checkChat, setEngine, setReadDirs, newConversation, stopChat } from './chat.mjs';
+import { chatInfo, sendChat, checkChat, setEngine, setReadDirs, newConversation, stopChat, onChat, currentJob } from './chat.mjs';
+import { listArtifacts } from '../tools/artifact.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
 const HTML = path.join(ROOT, 'viewer', 'index.html');
 export const VERSION = (() => { try { return JSON.parse(readText(path.join(ROOT, 'package.json'))).version; } catch { return ''; } })();
-const IGNORE = /(\.tmp-\d+$|\.lock$|\.DS_Store$|events\.jsonl$|\.session\.json$|\.chat\.json$|chat\.jsonl$)/;
+const IGNORE = /(\.tmp-\d+$|\.lock$|\.meta\.json$|\.DS_Store$|events\.jsonl$|\.session\.json$|\.chat\.json$|chat\.jsonl$)/;
 
 // Which role "owns" a file when it has no `author:` front matter.
 const OWNER = [
@@ -97,6 +98,7 @@ function snapshot() {
     files: exists ? listFiles() : [],
     finance: exists ? listDocs().map(d => ({ id: d.id, type: d.type, number: d.number, status: d.status, client: d.client?.name, totals: d.totals, currency: d.currency, created: d.created, issue_date: d.issue_date, due_date: d.due_date, author: d.author })) : [],
     billingReady: exists && !!(billing().legal_name && billing().address),
+    artifacts: exists ? listArtifacts() : [],
   };
 }
 
@@ -181,6 +183,29 @@ export function startServer(port = DEFAULT_PORT) {
         req.on('close', () => clients.delete(res));
         return;
       }
+      if (url.pathname === '/api/chat/stream') {
+        res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
+        res.write(`retry: 2000\nevent: job\ndata: ${JSON.stringify({ job: currentJob() })}\n\n`);
+        const off = onChat(ev => res.write(`event: chat\ndata: ${JSON.stringify(ev)}\n\n`));
+        const beat = setInterval(() => res.write(': ping\n\n'), 15000);
+        req.on('close', () => { off(); clearInterval(beat); });
+        return;
+      }
+      if (url.pathname === '/api/artifacts') return json(res, 200, listArtifacts());
+      const art = /^\/artifacts\/([a-z0-9-]+\.(html|md|csv|json|svg|txt))$/.exec(url.pathname);
+      if (art && req.method === 'GET') {
+        const f = path.join(P.artifacts, art[1]);
+        if (!fs.existsSync(f)) return json(res, 404, { error: 'not found' });
+        const types = { html: 'text/html', md: 'text/markdown', csv: 'text/csv', json: 'application/json', svg: 'image/svg+xml', txt: 'text/plain' };
+        res.writeHead(200, {
+          'content-type': `${types[art[2]]}; charset=utf-8`, 'cache-control': 'no-store',
+          // An artifact runs in its own sandbox: it cannot read your data or talk to the team.
+          'content-security-policy': "sandbox allow-scripts allow-downloads allow-popups allow-forms allow-modals; connect-src 'none'; frame-ancestors 'self'",
+          'x-content-type-options': 'nosniff',
+          ...(url.searchParams.get('download') ? { 'content-disposition': `attachment; filename="${art[1]}"` } : {}),
+        });
+        return res.end(fs.readFileSync(f));
+      }
       if (url.pathname.startsWith('/api/chat')) {
         let session = {};
         try { session = JSON.parse(readText(P.session, '{}')); } catch {}
@@ -197,10 +222,8 @@ export function startServer(port = DEFAULT_PORT) {
           if (url.pathname === '/api/chat/new') { newConversation(); return json(res, 200, { ok: true }); }
           if (url.pathname === '/api/chat/stop') return json(res, 200, { stopped: stopChat() });
           if (url.pathname === '/api/chat') {
-            checkChat(data.message, data.to || 'auto');
-            res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' });
-            sendChat(data.message, ev => { res.write(JSON.stringify(ev) + '\n'); if (ev.type === 'done') res.end(); }, { to: data.to || 'auto', lang: data.lang === 'fr' ? 'fr' : 'en' });
-            return;
+            const id = sendChat(data.message, { to: data.to || 'auto', lang: data.lang === 'fr' ? 'fr' : 'en' });
+            return json(res, 200, { ok: true, job: id });
           }
         } catch (e) {
           if (res.headersSent) { res.write(JSON.stringify({ type: 'error', text: e.message }) + '\n'); res.end(JSON.stringify({ type: 'done' }) + '\n'); return; }
