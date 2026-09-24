@@ -114,7 +114,8 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--soft)}
 .meta dt{color:var(--muted)}.meta dd{margin:0;overflow-wrap:anywhere}
 .chat{display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px}
 .chat-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.chat-bar select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.chat-bar select,.chat-bar input{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.chat-bar input{width:170px}
 .chat-log{flex:1;overflow:auto;padding:18px 18px 8px;display:flex;flex-direction:column;gap:14px}
 .bub{max-width:78%;padding:10px 14px;border-radius:14px;line-height:1.5;overflow-wrap:anywhere}
 .bub.you{align-self:flex-end;background:var(--ink);color:var(--bg);border-bottom-right-radius:4px;white-space:pre-wrap}
@@ -227,6 +228,7 @@ const I18N = {
     l_website: 'Website', l_registry: 'Registry id', l_place: 'Place', l_industry: 'Industry', l_employees: 'Employees', l_contact: 'Contact', l_channel: 'Channel',
     l_contactSource: 'Contact source', l_score: 'Score', l_status: 'Status', l_next: 'Next action', l_sources: 'Sources', noAccount: 'No account file yet.',
     ai: 'AI', to: 'To', auto: 'The right person (the CEO decides)', newConv: 'New conversation', send: 'Send', stop: 'Stop', modelTip: 'The model your AI tool reported on the last answer',
+    modelDefault: 'Model: your tool\'s setting', modelOther: 'Other model...', modelName: 'model name', effortDefault: 'Effort: your tool\'s setting',
     placeholder: who => `Write to ${who}… (Enter to send, Shift+Enter for a new line)`, theTeam: 'the team',
     workingStatus: 'working… (watch the Office tab)', chatFoot: 'Each message runs your AI tool in this folder with your own login. The team can research, write and update files in <code>workspace/</code>; it never sends anything.',
     demoChat: 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.', couldNotStart: 'The team could not start.',
@@ -270,6 +272,7 @@ const I18N = {
     l_website: 'Site', l_registry: 'Identifiant officiel', l_place: 'Lieu', l_industry: 'Activité', l_employees: 'Effectif', l_contact: 'Contact', l_channel: 'Canal',
     l_contactSource: 'Source du contact', l_score: 'Score', l_status: 'Statut', l_next: 'Prochaine étape', l_sources: 'Sources', noAccount: 'Pas encore de fiche entreprise.',
     ai: 'IA', to: 'À', auto: 'La bonne personne (le CEO oriente)', newConv: 'Nouvelle conversation', send: 'Envoyer', stop: 'Arrêter', modelTip: 'Le modèle annoncé par ton outil d\'IA à la dernière réponse',
+    modelDefault: 'Modèle : réglage de ton outil', modelOther: 'Autre modèle...', modelName: 'nom du modèle', effortDefault: 'Effort : réglage de ton outil',
     placeholder: who => `Écrire à ${who}… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)`, theTeam: "l'équipe",
     workingStatus: "au travail… (suivez l'onglet Bureau)", chatFoot: "Chaque message lance votre outil d'IA dans ce dossier, avec votre propre connexion. L'équipe peut chercher, écrire et mettre à jour les fichiers de <code>workspace/</code> ; elle n'envoie jamais rien.",
     demoChat: "Le chat est désactivé en mode démo : rien n'est réel ici. Lancez votre propre entreprise avec <code>./start</code>.", couldNotStart: "L'équipe n'a pas pu démarrer.",
@@ -455,6 +458,8 @@ let chat = { info: null, busy: false, to: (() => { try { return localStorage.get
 const isTeam = e => e.type === 'handoff' || e.type === 'say' || e.type === 'artifact' || (e.type === 'task' && /^Done:/.test(e.text || ''));
 function chatView() {
   return `<div class="card chat"><div class="chat-bar"><span class="muted small">${t('ai')}</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
+    <select id="chat-model-sel" onchange="chatPick(this.value)"></select><input id="chat-model-free" placeholder="${t('modelName')}" style="display:none" onchange="chatPickFree(this.value)">
+    <select id="chat-effort-sel" onchange="chatEffortPick(this.value)"></select>
     <span class="muted small" id="chat-model" title="${t('modelTip')}"></span><span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="notif-btn" onclick="askNotif()"></button><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
     <div class="dirs" id="dirs"></div>
     <div class="chat-log" id="chat-log"></div>
@@ -590,6 +595,7 @@ async function chatInit() {
   const r = await fetch('/api/chat'); chat.info = await r.json();
   const sel = $('#chat-engine'); if (!sel) return;
   const mo = $('#chat-model'); if (mo) mo.textContent = chat.info.model || '';
+  modelSelects();
   sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || `<option>${t('noEngine')}</option>`;
   recipients(); renderDirs(); renderQuick(); notifButton(); micSetup();
   chat.unread = 0; badge();
@@ -662,6 +668,11 @@ function chatStream() {
     if (onChat) applyEvent(ev);
   });
 }
+function toast(text) {
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<span>${esc(String(text))}</span>`;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 6000);
+}
 function notifyDone() {
   chat.unread++; badge();
   const msg = t('doneToast');
@@ -682,7 +693,33 @@ function notifButton() {
 }
 async function askNotif() { try { await Notification.requestPermission(); } catch {} notifButton(); }
 async function chatStop() { await fetch('/api/chat/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); }
-async function chatEngine(id) { await fetch('/api/chat/engine', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ engine: id }) }); }
+// The model and the effort are your AI tool's business: empty means "whatever your tool is set to".
+function modelSelects() {
+  const i = chat.info, ms = $('#chat-model-sel'), es = $('#chat-effort-sel'), free = $('#chat-model-free');
+  if (!ms || !i) return;
+  const list = (i.choices && i.choices.models) || [], typed = i.pick && !list.includes(i.pick);
+  ms.innerHTML = [`<option value="">${t('modelDefault')}</option>`,
+    ...list.map(m => `<option value="${esc(m)}"${m === i.pick ? ' selected' : ''}>${esc(m)}</option>`),
+    `<option value="__other"${typed ? ' selected' : ''}>${t('modelOther')}</option>`].join('');
+  free.style.display = typed ? '' : 'none';
+  free.value = typed ? i.pick : '';
+  const efs = (i.choices && i.choices.efforts) || [];
+  es.style.display = efs.length ? '' : 'none';
+  es.innerHTML = [`<option value="">${t('effortDefault')}</option>`,
+    ...efs.map(e => `<option value="${esc(e)}"${e === i.effort ? ' selected' : ''}>${esc(e)}</option>`)].join('');
+}
+async function saveModel(model, effort) {
+  const r = await fetch('/api/chat/model', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, effort }) });
+  const d = await r.json();
+  if (!r.ok) { toast(d.error || 'error'); return; }
+  chat.info.pick = d.model || ''; chat.info.effort = d.effort || '';
+  modelSelects();
+}
+function chatPick(v) { if (v === '__other') { const f = $('#chat-model-free'); f.style.display = ''; f.focus(); return; } saveModel(v, chat.info.effort); }
+function chatPickFree(v) { saveModel(String(v || '').trim(), chat.info.effort); }
+function chatEffortPick(v) { saveModel(chat.info.pick, v); }
+
+async function chatEngine(id) { await fetch('/api/chat/engine', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ engine: id }) }); chatInit(); }
 async function chatNew() { if (chat.busy) return; await fetch('/api/chat/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); chatInit(); }
 
 // ---------- dictation (the browser's own speech recognition) ----------

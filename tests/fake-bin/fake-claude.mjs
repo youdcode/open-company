@@ -15,8 +15,10 @@ process.stdin.on('end', async () => {
   const role = direct ? direct[1] : 'director';
   const words = prompt.split('\n\n---\n')[0].trim();
   const lang = /Reply in French/.test(prompt) ? ' (fr)' : '';
+  const flag = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : ''; };
+  const asked = flag('--model') || flag('--effort') ? ` (model ${flag('--model') || 'default'}, effort ${flag('--effort') || 'default'})` : '';
   const d = args.indexOf('--add-dir');
   const dirs = d >= 0 ? ` (can read: ${args.slice(d + 1, args.indexOf('--allowedTools')).join(', ')})` : '';
-  out({ type: 'assistant', message: { model: 'fake-model-1', content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${dirs}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
+  out({ type: 'assistant', message: { model: 'fake-model-1', content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${dirs}${asked}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
   out({ type: 'result', subtype: 'success', is_error: false, result: 'ok', session_id: resumed || 'fake-session-1' });
 });

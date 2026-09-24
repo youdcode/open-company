@@ -13,7 +13,7 @@ import {
 import { parseBoard } from '../tools/board.mjs';
 import { listDrafts, setDraftStatus } from '../tools/drafts.mjs';
 import { listDocs, setDocStatus, htmlOf, billing } from '../tools/invoice.mjs';
-import { chatInfo, sendChat, checkChat, setEngine, setReadDirs, newConversation, stopChat, onChat, currentJob } from './chat.mjs';
+import { chatInfo, sendChat, checkChat, setEngine, setReadDirs, newConversation, stopChat, onChat, currentJob, setModel } from './chat.mjs';
 import { listArtifacts } from '../tools/artifact.mjs';
 
 export const DEFAULT_PORT = Number(process.env.OPEN_COMPANY_PORT) || 4747;
@@ -219,6 +219,7 @@ export function startServer(port = DEFAULT_PORT) {
         try {
           if (url.pathname === '/api/chat/engine') { setEngine(data.engine); return json(res, 200, { ok: true }); }
           if (url.pathname === '/api/chat/dirs') { try { return json(res, 200, { dirs: setReadDirs(data.dirs) }); } catch (e) { return json(res, 400, { error: e.message }); } }
+          if (url.pathname === '/api/chat/model') { try { return json(res, 200, setModel(chatInfo().engine, data.model, data.effort)); } catch (e) { return json(res, 400, { error: e.message }); } }
           if (url.pathname === '/api/chat/new') { newConversation(); return json(res, 200, { ok: true }); }
           if (url.pathname === '/api/chat/stop') return json(res, 200, { stopped: stopChat() });
           if (url.pathname === '/api/chat') {

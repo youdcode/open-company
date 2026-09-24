@@ -264,6 +264,19 @@ ok('the page can approve a draft', res.ok);
 
   ok('the page shows which model the AI tool actually used', (await info()).model === 'fake-model-1');
 
+  const setModelApi = body => fetch(`${base}/api/chat/model`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+  const i0 = await info();
+  ok('the page is offered the models and efforts of the tool in use', i0.choices.models.includes('opus') && i0.choices.efforts.includes('xhigh'));
+  ok('a model name with a space or a quote is refused', (await setModelApi({ model: 'opus; rm -rf /' })).status === 400);
+  ok('an effort the tool does not have is refused', (await setModelApi({ effort: 'ultracode' })).status === 400);
+  ok('a model and an effort can be chosen in the page', (await setModelApi({ model: 'sonnet', effort: 'high' })).ok);
+  await send('who is answering?'); const j4 = await idle();
+  ok('the choice reaches the AI tool as its own flags', j4.history.at(-1).text.includes('(model sonnet, effort high)'));
+  ok('the choice is remembered between visits', (await info()).pick === 'sonnet' && (await info()).effort === 'high');
+  await setModelApi({ model: '', effort: '' });
+  await send('and now?'); const j5 = await idle();
+  ok('clearing it gives the tool its own setting back', !/model |effort /.test(j5.history.at(-1).text));
+
   const { routingNote } = await import('../viewer/chat.mjs');
   const note = routingNote('auto', 'en', []);
   ok('the AI is told where the workspace is, so it never writes in the wrong one', note.includes(`${TMP.split(path.sep).join('/')}/org/memory.md`));

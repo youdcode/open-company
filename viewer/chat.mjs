@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { ROOT, WS, P, readText, writeText, logEvent, now } from '../tools/lib/common.mjs';
 
 const STATE = path.join(WS, '.chat.json');
@@ -64,11 +64,18 @@ export function splitByRole(text, fallback = 'director') {
   return parts;
 }
 
+// A model id is passed to another program: keep it to the characters model names actually use.
+const MODEL_OK = /^[A-Za-z0-9][A-Za-z0-9._\/:-]{0,63}$/;
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+
 export const CHAT_ENGINES = {
   claude: {
     name: 'Claude Code', bin: 'claude',
     // Reference folders are added for reading only: the allow list never lets Claude write outside workspace/.
-    args: (sid, _msg, dirs = []) => ['-p', '--output-format', 'stream-json', '--verbose', ...(sid ? ['--resume', sid] : []),
+    // Documented aliases (claude --help); the owner can also type a full model name.
+    models: ['opus', 'sonnet', 'fable', 'haiku'], efforts: EFFORTS,
+    args: (sid, _msg, dirs = [], o = {}) => ['-p', '--output-format', 'stream-json', '--verbose',
+      ...(o.model ? ['--model', o.model] : []), ...(o.effort ? ['--effort', o.effort] : []), ...(sid ? ['--resume', sid] : []),
       ...(dirs.length ? ['--add-dir', ...dirs] : []), '--allowedTools', ...CLAUDE_TOOLS],
     parse(ev, emit) {
       if (ev.session_id) emit({ type: 'session', id: ev.session_id });
@@ -83,8 +90,10 @@ export const CHAT_ENGINES = {
   codex: {
     name: 'Codex', bin: 'codex',
     // Values that are not valid TOML are read as plain strings by Codex, so no inner quotes are needed.
-    args: sid => ['exec', '--json', '--skip-git-repo-check', '-c', 'sandbox_mode=workspace-write',
-      '-c', 'sandbox_workspace_write.network_access=true', '-c', 'web_search=live', ...(sid ? ['resume', sid] : []), '-'],
+    models: [], // Codex has no list command: the owner types the model id
+    args: (sid, _msg, _dirs = [], o = {}) => ['exec', '--json', '--skip-git-repo-check', ...(o.model ? ['-m', o.model] : []),
+      '-c', 'sandbox_mode=workspace-write', '-c', 'sandbox_workspace_write.network_access=true', '-c', 'web_search=live',
+      ...(sid ? ['resume', sid] : []), '-'],
     parse(ev, emit) {
       if (ev.type === 'thread.started') emit({ type: 'session', id: ev.thread_id });
       if (ev.model || ev.item?.model) emit({ type: 'model', text: ev.model || ev.item.model });
@@ -97,7 +106,10 @@ export const CHAT_ENGINES = {
   },
   opencode: {
     name: 'OpenCode', bin: 'opencode',
-    args: (sid, msg) => ['run', '--format', 'json', ...(process.env.OPEN_COMPANY_OPENCODE_MODEL ? ['-m', process.env.OPEN_COMPANY_OPENCODE_MODEL] : []), ...(sid ? ['-s', sid] : []), msg],
+    list: ['models'], // `opencode models` prints what the account can use
+    args: (sid, msg, _dirs = [], o = {}) => ['run', '--format', 'json',
+      ...((o.model || process.env.OPEN_COMPANY_OPENCODE_MODEL) ? ['-m', o.model || process.env.OPEN_COMPANY_OPENCODE_MODEL] : []),
+      ...(sid ? ['-s', sid] : []), msg],
     promptAsArg: true,
     parse(ev, emit) {
       if (ev.sessionID) emit({ type: 'session', id: ev.sessionID });
@@ -121,6 +133,39 @@ export const installedEngines = () => Object.keys(CHAT_ENGINES).filter(k => whic
 function readState() { try { return JSON.parse(readText(STATE, '{}')); } catch { return {}; } }
 function saveState(s) { writeText(STATE, JSON.stringify(s, null, 2)); }
 
+// What the page offers in its two selectors. A tool that can list its models is asked once.
+export function modelChoices(engine) {
+  const E = CHAT_ENGINES[engine];
+  if (!E) return { models: [], efforts: [] };
+  let models = E.models || [];
+  if (E.list) {
+    const st = readState();
+    const cached = (st.modelLists || {})[engine];
+    if (cached) models = cached;
+    else {
+      try {
+        const out = execFileSync(which(E.bin) || E.bin, E.list, { encoding: 'utf8', timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'] });
+        models = out.split('\n').map(l => l.trim()).filter(l => MODEL_OK.test(l)).slice(0, 60);
+        const s2 = readState(); s2.modelLists = { ...(s2.modelLists || {}), [engine]: models }; saveState(s2);
+      } catch { models = []; }
+    }
+  }
+  return { models, efforts: E.efforts || [] };
+}
+
+// The owner picks a model (or an effort) for an engine, or clears it to use the tool's own setting.
+export function setModel(engine, model, effort) {
+  if (!CHAT_ENGINES[engine]) throw new Error(`unknown AI tool "${engine}"`);
+  const m = String(model ?? '').trim();
+  const e = String(effort ?? '').trim();
+  if (m && !MODEL_OK.test(m)) throw new Error('a model name is letters, digits and . _ - / : only');
+  if (e && !(CHAT_ENGINES[engine].efforts || []).includes(e)) throw new Error(`effort must be one of: ${(CHAT_ENGINES[engine].efforts || []).join(', ') || 'none for this tool'}`);
+  const st = readState();
+  st.picks = { ...(st.picks || {}), [engine]: { model: m, effort: e } };
+  saveState(st);
+  return st.picks[engine];
+}
+
 export function chatInfo() {
   const installed = installedEngines();
   const st = readState();
@@ -128,7 +173,8 @@ export function chatInfo() {
   try { session = JSON.parse(readText(P.session, '{}')); } catch {}
   const engine = [st.engine, session.engine].find(e => e && installed.includes(e)) || installed[0] || '';
   const history = readText(HISTORY).split('\n').filter(Boolean).slice(-200).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-  return { engine, model: (st.models || {})[engine] || '', installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, job: currentJob(), readDirs: st.readDirs || [] };
+  const pick = (st.picks || {})[engine] || {};
+  return { engine, model: (st.models || {})[engine] || '', pick: pick.model || '', effort: pick.effort || '', choices: modelChoices(engine), installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, job: currentJob(), readDirs: st.readDirs || [] };
 }
 
 // Folders the team may READ (never write): for example the documents of your company.
@@ -191,7 +237,8 @@ export function sendChat(message, { to = 'auto', lang = 'en' } = {}) {
   const dirs = (st.readDirs || []).filter(d => { try { return fs.statSync(d).isDirectory(); } catch { return false; } });
   const prompt = text + routingNote(to, lang, dirs);
 
-  let argv = E.args(sid, prompt, dirs);
+  const pick = (st.picks || {})[engine] || {};
+  let argv = E.args(sid, prompt, dirs, pick);
   // On Windows the AI tools are .cmd files, which only start through the shell: quote every argument.
   const win = process.platform === 'win32';
   if (win) argv = argv.map(a => /[\s"^&|<>()%!*]/.test(a) ? `"${String(a).replace(/"/g, "'").replace(/%/g, '%%')}"` : a);
