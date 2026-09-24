@@ -42,9 +42,12 @@ export function routingNote(to = 'auto', lang = 'en', dirs = []) {
     ? 'Reply in French, the owner\'s language, and write the board tasks, handoffs and log lines of this request in French too.'
     : 'Reply in English.';
   const refs = dirs.length ? ` Read-only reference folders the owner gave you: ${dirs.join(', ')}. Read them when useful, never write there, and cite the file path as the source of any fact taken from them.` : '';
-  const memory = ' Before answering, read workspace/org/memory.md and the last lines of workspace/org/journal.md (cheap, always). What must survive this conversation goes into files: tools/memory.mjs for a lasting fact, journal.md for a decision.';
+  const rel = path.relative(ROOT, WS).split(path.sep).join('/');
+  const ws = !rel ? 'workspace' : rel.startsWith('..') ? WS : rel; // absolute when the workspace is outside the project
+  const memory = ` Before answering, read ${ws}/org/memory.md and the last lines of ${ws}/org/journal.md (cheap, always). What must survive this conversation goes into files: tools/memory.mjs for a lasting fact, journal.md for a decision.`;
+  const where = ws === 'workspace' ? '' : ` The workspace of this company is \`${ws}\` and not \`workspace\`: read and write the company files there (\`${ws}/company/profile.md\`, \`${ws}/org/memory.md\`, and so on). The tools already write there.`;
   const team = ' When several roles are involved, let them discuss with tools/say.mjs (short messages to each other, which the owner reads live): proposals, objections, answers, then a decision. When the owner asks for a file, a list, a table, a dashboard or a page, deliver it as an artifact with tools/artifact.mjs (skill artifact).';
-  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs}${team}${memory} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
+  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs}${where}${team}${memory} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
 }
 
 // "[marketer]\nHello\n[director]\nDone" -> [{role: 'marketer', text: 'Hello'}, {role: 'director', text: 'Done'}]
