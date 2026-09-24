@@ -226,7 +226,7 @@ const I18N = {
     noHandoffs: 'When one role hands work to another, the note appears here.', noFiles: 'No files yet.', updateFailed: 'Could not update this item.',
     l_website: 'Website', l_registry: 'Registry id', l_place: 'Place', l_industry: 'Industry', l_employees: 'Employees', l_contact: 'Contact', l_channel: 'Channel',
     l_contactSource: 'Contact source', l_score: 'Score', l_status: 'Status', l_next: 'Next action', l_sources: 'Sources', noAccount: 'No account file yet.',
-    ai: 'AI', to: 'To', auto: 'The right person (the CEO decides)', newConv: 'New conversation', send: 'Send', stop: 'Stop',
+    ai: 'AI', to: 'To', auto: 'The right person (the CEO decides)', newConv: 'New conversation', send: 'Send', stop: 'Stop', modelTip: 'The model your AI tool reported on the last answer',
     placeholder: who => `Write to ${who}… (Enter to send, Shift+Enter for a new line)`, theTeam: 'the team',
     workingStatus: 'working… (watch the Office tab)', chatFoot: 'Each message runs your AI tool in this folder with your own login. The team can research, write and update files in <code>workspace/</code>; it never sends anything.',
     demoChat: 'The chat is off in demo mode: nothing here is real. Launch your own company with <code>./start</code>.', couldNotStart: 'The team could not start.',
@@ -269,7 +269,7 @@ const I18N = {
     noHandoffs: "Quand un rôle passe du travail à un autre, le message apparaît ici.", noFiles: 'Aucun fichier pour l\'instant.', updateFailed: 'Mise à jour impossible.',
     l_website: 'Site', l_registry: 'Identifiant officiel', l_place: 'Lieu', l_industry: 'Activité', l_employees: 'Effectif', l_contact: 'Contact', l_channel: 'Canal',
     l_contactSource: 'Source du contact', l_score: 'Score', l_status: 'Statut', l_next: 'Prochaine étape', l_sources: 'Sources', noAccount: 'Pas encore de fiche entreprise.',
-    ai: 'IA', to: 'À', auto: 'La bonne personne (le CEO oriente)', newConv: 'Nouvelle conversation', send: 'Envoyer', stop: 'Arrêter',
+    ai: 'IA', to: 'À', auto: 'La bonne personne (le CEO oriente)', newConv: 'Nouvelle conversation', send: 'Envoyer', stop: 'Arrêter', modelTip: 'Le modèle annoncé par ton outil d\'IA à la dernière réponse',
     placeholder: who => `Écrire à ${who}… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)`, theTeam: "l'équipe",
     workingStatus: "au travail… (suivez l'onglet Bureau)", chatFoot: "Chaque message lance votre outil d'IA dans ce dossier, avec votre propre connexion. L'équipe peut chercher, écrire et mettre à jour les fichiers de <code>workspace/</code> ; elle n'envoie jamais rien.",
     demoChat: "Le chat est désactivé en mode démo : rien n'est réel ici. Lancez votre propre entreprise avec <code>./start</code>.", couldNotStart: "L'équipe n'a pas pu démarrer.",
@@ -455,7 +455,7 @@ let chat = { info: null, busy: false, to: (() => { try { return localStorage.get
 const isTeam = e => e.type === 'handoff' || e.type === 'say' || e.type === 'artifact' || (e.type === 'task' && /^Done:/.test(e.text || ''));
 function chatView() {
   return `<div class="card chat"><div class="chat-bar"><span class="muted small">${t('ai')}</span><select id="chat-engine" onchange="chatEngine(this.value)"></select>
-    <span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="notif-btn" onclick="askNotif()"></button><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
+    <span class="muted small" id="chat-model" title="${t('modelTip')}"></span><span class="muted small" id="chat-status"></span><span style="margin-left:auto"></span><button class="btn" id="notif-btn" onclick="askNotif()"></button><button class="btn" id="dirs-btn" onclick="$('#dirs').classList.toggle('open')"></button><button class="btn" onclick="chatNew()">${t('newConv')}</button></div>
     <div class="dirs" id="dirs"></div>
     <div class="chat-log" id="chat-log"></div>
     <div class="quick" id="chat-quick"></div>
@@ -589,6 +589,7 @@ function applyEvent(ev) {
 async function chatInit() {
   const r = await fetch('/api/chat'); chat.info = await r.json();
   const sel = $('#chat-engine'); if (!sel) return;
+  const mo = $('#chat-model'); if (mo) mo.textContent = chat.info.model || '';
   sel.innerHTML = chat.info.installed.map(e => `<option value="${esc(e.id)}" ${e.id === chat.info.engine ? 'selected' : ''}>${esc(e.name)}</option>`).join('') || `<option>${t('noEngine')}</option>`;
   recipients(); renderDirs(); renderQuick(); notifButton(); micSetup();
   chat.unread = 0; badge();
@@ -649,6 +650,7 @@ function chatStream() {
       }
       return;
     }
+    if (ev.type === 'model') { const mo = $('#chat-model'); if (mo) mo.textContent = ev.text || ''; }
     if (ev.type === 'done') {
       chat.live?.b?.querySelector('.thinking')?.remove(); document.querySelectorAll('.live-think').forEach(x => x.remove());
       if (chat.live && !chat.live.body.textContent.trim()) chat.live.b.remove();

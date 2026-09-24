@@ -262,6 +262,8 @@ ok('the page can approve a draft', res.ok);
   const parts = splitByRole('[director]\nI give this to Marketing.\n[marketer] Here is the plan.\n- point 1\n[nobody]\nstays', 'director');
   ok('a reply with several voices is split by role', parts.length === 2 && parts[0].role === 'director' && parts[1].role === 'marketer' && /point 1/.test(parts[1].text) && /\[nobody\]/.test(parts[1].text));
 
+  ok('the page shows which model the AI tool actually used', (await info()).model === 'fake-model-1');
+
   const { routingNote } = await import('../viewer/chat.mjs');
   const note = routingNote('auto', 'en', []);
   ok('the AI is told where the workspace is, so it never writes in the wrong one', note.includes(`${TMP.split(path.sep).join('/')}/org/memory.md`));

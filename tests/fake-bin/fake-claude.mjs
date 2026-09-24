@@ -9,7 +9,7 @@ process.stdin.on('end', async () => {
   const resumed = i >= 0 ? args[i + 1] : '';
   const out = o => process.stdout.write(JSON.stringify(o) + '\n');
   out({ type: 'system', subtype: 'init', session_id: resumed || 'fake-session-1' });
-  out({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'node tools/leads.mjs list' } }] } });
+  out({ type: 'assistant', message: { model: 'fake-model-1', content: [{ type: 'tool_use', name: 'Bash', input: { command: 'node tools/leads.mjs list' } }] } });
   if (delay) await new Promise(r => setTimeout(r, delay));
   const direct = /talking directly to the .*?\(([a-z-]+)\)/.exec(prompt);
   const role = direct ? direct[1] : 'director';
@@ -17,6 +17,6 @@ process.stdin.on('end', async () => {
   const lang = /Reply in French/.test(prompt) ? ' (fr)' : '';
   const d = args.indexOf('--add-dir');
   const dirs = d >= 0 ? ` (can read: ${args.slice(d + 1, args.indexOf('--allowedTools')).join(', ')})` : '';
-  out({ type: 'assistant', message: { content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${dirs}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
+  out({ type: 'assistant', message: { model: 'fake-model-1', content: [{ type: 'text', text: `[${role}]\n**Got it**: ${words}${lang}${dirs}${resumed ? ` (resumed ${resumed})` : ''}` }] } });
   out({ type: 'result', subtype: 'success', is_error: false, result: 'ok', session_id: resumed || 'fake-session-1' });
 });

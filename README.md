@@ -81,6 +81,10 @@ shows everything. You can also open the folder directly with your AI tool (`clau
 Each chat message runs your AI tool in this folder in headless mode, with your own login, and continues
 the same conversation. Log in to your AI tool once in a terminal before the first chat.
 
+**Which model answered.** The chat bar shows the model your AI tool reported on its last answer, next
+to the tool name, so you always know what did the work. It is your tool's own setting: Open Company
+never picks a model for you.
+
 **Leave and come back.** A request runs on your computer's server, not in the page: switch tabs, reload
 or close the page, and find the work in progress or the answer when you come back. Turn on "Notify me"
 to get a notification when the team has answered. **Dictation**: the microphone button uses your

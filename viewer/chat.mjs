@@ -72,6 +72,7 @@ export const CHAT_ENGINES = {
       ...(dirs.length ? ['--add-dir', ...dirs] : []), '--allowedTools', ...CLAUDE_TOOLS],
     parse(ev, emit) {
       if (ev.session_id) emit({ type: 'session', id: ev.session_id });
+      if (ev.message?.model) emit({ type: 'model', text: ev.message.model });
       if (ev.type === 'assistant') for (const c of ev.message?.content || []) {
         if (c.type === 'text' && c.text.trim()) emit({ type: 'text', text: c.text });
         if (c.type === 'tool_use') emit({ type: 'tool', text: c.name === 'Bash' ? short(c.input?.command) : `${c.name} ${short(c.input?.file_path || c.input?.query || c.input?.url || c.input?.description || '')}` });
@@ -86,6 +87,7 @@ export const CHAT_ENGINES = {
       '-c', 'sandbox_workspace_write.network_access=true', '-c', 'web_search=live', ...(sid ? ['resume', sid] : []), '-'],
     parse(ev, emit) {
       if (ev.type === 'thread.started') emit({ type: 'session', id: ev.thread_id });
+      if (ev.model || ev.item?.model) emit({ type: 'model', text: ev.model || ev.item.model });
       const it = ev.item || {};
       if (ev.type === 'item.completed' && it.type === 'agent_message' && it.text) emit({ type: 'text', text: it.text });
       if (ev.type === 'item.started' && it.type === 'command_execution') emit({ type: 'tool', text: short(String(it.command).replace(/^\/bin\/\w+ -lc '?|'$/g, '')) });
@@ -126,7 +128,7 @@ export function chatInfo() {
   try { session = JSON.parse(readText(P.session, '{}')); } catch {}
   const engine = [st.engine, session.engine].find(e => e && installed.includes(e)) || installed[0] || '';
   const history = readText(HISTORY).split('\n').filter(Boolean).slice(-200).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-  return { engine, installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, job: currentJob(), readDirs: st.readDirs || [] };
+  return { engine, model: (st.models || {})[engine] || '', installed: installed.map(k => ({ id: k, name: CHAT_ENGINES[k].name })), history, busy: !!running, job: currentJob(), readDirs: st.readDirs || [] };
 }
 
 // Folders the team may READ (never write): for example the documents of your company.
@@ -208,6 +210,12 @@ export function sendChat(message, { to = 'auto', lang = 'en' } = {}) {
       const s = readState();
       s.sessions = { ...(s.sessions || {}), [engine]: ev.id };
       saveState(s);
+      return;
+    }
+    if (ev.type === 'model') {
+      const s = readState();
+      if ((s.models || {})[engine] !== ev.text) { s.models = { ...(s.models || {}), [engine]: ev.text }; saveState(s); }
+      push(ev);
       return;
     }
     if (ev.type === 'text') replies.push({ ts: now(), text: ev.text });
