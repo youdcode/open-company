@@ -34,7 +34,7 @@ function roleTitle(id) {
 // and how to show which role is speaking and how they hand work to each other.
 export function routingNote(to = 'auto', lang = 'en', dirs = []) {
   const route = to === 'auto'
-    ? 'The owner wrote to the company: as the Director (CEO), decide which role should handle it. If it is work for a role, hand it off with tools/handoff.mjs (from director to that role, 3 lines max) and let that role do the work and answer.'
+    ? 'The owner wrote to the company: as the Director (CEO), decide which role should handle it. If it is the job of a role, do not answer it yourself: say in one line who you are giving it to, hand it off with tools/handoff.mjs (from director to that role, 3 lines max), then let that role do the work and answer with its own [role] tag. Answer directly only for questions about the company itself or a one-line answer.'
     : to === 'director'
       ? 'The owner is talking directly to you, the CEO (director).'
       : `The owner is talking directly to the ${roleTitle(to)} (${to}): answer as that role, following roles/${to}.md (use its subagent if your tool has one). If another role is needed, hand off with tools/handoff.mjs.`;
@@ -42,8 +42,9 @@ export function routingNote(to = 'auto', lang = 'en', dirs = []) {
     ? 'Reply in French, the owner\'s language, and write the board tasks, handoffs and log lines of this request in French too.'
     : 'Reply in English.';
   const refs = dirs.length ? ` Read-only reference folders the owner gave you: ${dirs.join(', ')}. Read them when useful, never write there, and cite the file path as the source of any fact taken from them.` : '';
+  const memory = ' Before answering, read workspace/org/memory.md and the last lines of workspace/org/journal.md (cheap, always). What must survive this conversation goes into files: tools/memory.mjs for a lasting fact, journal.md for a decision.';
   const team = ' When several roles are involved, let them discuss with tools/say.mjs (short messages to each other, which the owner reads live): proposals, objections, answers, then a decision. When the owner asks for a file, a list, a table, a dashboard or a page, deliver it as an artifact with tools/artifact.mjs (skill artifact).';
-  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs}${team} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
+  return `\n\n---\n(Sent from the Chat tab of the live office. ${route} ${language}${refs}${team}${memory} Start each part of your reply with the id of the role speaking, in brackets, on its own line: [director] when you answer as the CEO, [marketer], [sales], and so on. Every delegation between roles goes through tools/handoff.mjs, so the owner sees the team talk.)`;
 }
 
 // "[marketer]\nHello\n[director]\nDone" -> [{role: 'marketer', text: 'Hello'}, {role: 'director', text: 'Done'}]

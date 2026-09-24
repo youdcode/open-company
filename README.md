@@ -95,6 +95,16 @@ delivers it in the Artifacts tab (and as a card in the chat). The prospecting fi
 data by a script: search, filters, sort, sources, draft messages, your notes, CSV export. Artifacts run
 in a sandbox: they cannot read your data or talk to your team.
 
+**It remembers.** Everything that matters lives in files inside `workspace/`: leads, drafts, documents,
+artifacts, the board, the journal, and `org/memory.md` for lasting facts and your preferences. Close
+everything, come back tomorrow: the team reads its memory, the journal and the board at the start of
+every session and picks up where it stopped. A conversation is cheap to end and free to restart, which
+is also how you keep your AI usage low: end the day, start a new conversation, the facts stay.
+
+**It can learn your own documents.** Add a folder under "Readable folders", then say "read my documents":
+the team writes a knowledge base in `workspace/company/knowledge/` (an index plus digests, every fact
+pointing to the file it came from), and reads the index at every session start.
+
 **Readable folders.** The team only reads this project. To let it learn from your own documents (a
 company handbook, a business plan...), add the folder under "Readable folders" in the chat: the team can
 read it, never write in it (tested with Claude Code). What it reads is sent to your AI tool.

@@ -98,7 +98,7 @@ console.log('claude local permissions');
 console.log('--help never does anything');
 {
   const before = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
-  const tools = ['artifact', 'board', 'drafts', 'export', 'handoff', 'init', 'invoice', 'leads', 'log', 'registry-fr', 'registry-no', 'registry-uk', 'replies', 'say', 'score', 'sync-adapters'];
+  const tools = ['artifact', 'board', 'drafts', 'export', 'handoff', 'init', 'invoice', 'leads', 'log', 'memory', 'registry-fr', 'registry-no', 'registry-uk', 'replies', 'say', 'score', 'sync-adapters'];
   const outs = tools.map(t => run(`tools/${t}.mjs`, ['--help']));
   ok('every tool answers --help with its usage', outs.every(o => o.code === 0 && o.out.trim().length > 20));
   ok('--help has no side effect (no event, no export)', fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8') === before);
@@ -289,6 +289,19 @@ ok('the page can approve a draft', res.ok);
   ok('leads can be delivered as a CSV artifact', csv.code === 0 && fs.readdirSync(path.join(TMP, 'artifacts')).some(f => f.startsWith('leads-csv') && f.endsWith('.csv')));
   const ev2 = fs.readFileSync(path.join(TMP, 'org', 'events.jsonl'), 'utf8');
   ok('each new artifact appears in the live feed (and in the chat)', (ev2.match(/"type":"artifact"/g) || []).length >= 3);
+}
+{
+  // What the team remembers from one day to the next
+  r = run('tools/memory.mjs', ['remember', 'The owner validates every message himself']);
+  run('tools/memory.mjs', ['remember', 'The owner validates every message himself']);
+  r = run('tools/memory.mjs', ['remember', 'Seven security controls, never nine', '--as', 'auditor']);
+  const mem = fs.readFileSync(path.join(TMP, 'org', 'memory.md'), 'utf8');
+  ok('the team can remember a lasting fact, without duplicates', r.code === 0 && (mem.match(/validates every message/g) || []).length === 1 && /Seven security controls/.test(mem));
+  ok('a memory line stays short', run('tools/memory.mjs', ['remember', 'x'.repeat(400)]).code !== 0);
+  run('tools/memory.mjs', ['forget', '1']);
+  const mem2 = fs.readFileSync(path.join(TMP, 'org', 'memory.md'), 'utf8');
+  ok('the owner can make the team forget a line', !/validates every message/.test(mem2) && /Seven security controls/.test(mem2));
+  ok('memory is kept in the workspace, so it survives a closed conversation', fs.existsSync(path.join(TMP, 'org', 'memory.md')));
 }
 {
   // The team talks

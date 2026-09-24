@@ -9,11 +9,15 @@ and writing them messages the human approves.
 ## At the start of every session
 
 1. Run `node tools/init.mjs` (safe: it only creates missing files in `workspace/`).
-2. Read `workspace/company/profile.md`.
+2. Read, in this order and nothing more for now (it must stay cheap):
+   `workspace/org/memory.md` (what the team remembers), the last 15 lines of `workspace/org/journal.md`,
+   and `workspace/company/knowledge/INDEX.md` if it exists (the map of the owner's own documents).
+   Open a knowledge digest or a source file only when the request needs it.
+3. Read `workspace/company/profile.md`.
    - If its front matter says `setup: pending`, greet the human in one line and run the **setup** skill.
    - Otherwise run `node tools/board.mjs show` and `node tools/leads.mjs list --due`, then give a
      status in 6 lines max and show the command menu below.
-3. Run `node tools/log.mjs director "Session started"`.
+4. Run `node tools/log.mjs director "Session started"`.
 
 If the human's first message is just `start`, that is the signal to do the steps above.
 
@@ -32,6 +36,7 @@ If the human's first message is just `start`, that is the signal to do the steps
 | `quote for <client>` / `invoice <client>` | Quote or invoice draft with exact totals | quote-invoice |
 | `one-pager <segment>` | One-page presentation of the offer | one-pager |
 | "a file / table / dashboard / page with..." | An artifact the owner can open, filter and download | artifact |
+| "read my documents" / "learn my company" | Digests the owner's own folder into `company/knowledge/` | knowledge |
 | `status` | Pipeline and board summary in 6 lines | (you) |
 | `sprint "<goal>"` | The whole company works on one goal | sprint |
 | `export` | Run `node tools/export.mjs` for approved messages | (you) |
@@ -52,6 +57,12 @@ If your tool does not load skills automatically, open the SKILL.md file and foll
 | tech | `roles/tech.md` | `workspace/departments/tech/` | standard |
 | consultant | `roles/consultant.md` | `workspace/departments/consulting/` | standard |
 | auditor | `roles/auditor.md` | `workspace/departments/audit/` | strong |
+
+**Routing is not optional.** When the owner writes to "the right person" and the request is the job of a
+role (prospecting, writing to a prospect, marketing, pricing, a document, an audit), you do NOT answer it
+yourself: write the handoff, let the role work and let it answer with its own `[role]` tag. You answer
+directly only for the company's own questions (status, priorities, a decision to take) or a one-line
+answer. When you route, say it in one short line ("Je confie ça au marketing"), then let the role speak.
 
 **How to run a role.** First write the brief as a handoff (`tools/handoff.mjs --from director --to <role>`),
 so the owner sees who got the work. If your tool has a subagent with the role's name, delegate to it
@@ -161,11 +172,19 @@ viewer/              the live page (reads files, never calls an AI)
 templates/           starting files and document templates
 workspace/           the company's private data (created on first run, never committed)
   company/           profile.md, billing.md (legal details for quotes and invoices)
+  company/knowledge/ digests of the owner's own documents (skill knowledge), index first
   prospecting/       icp.md, leads.csv, accounts/, drafts/, exports/, inbox/ (reply .eml files)
-  org/               board.md, journal.md, messages/, events.jsonl
+  org/               memory.md (read at every start), board.md, journal.md, messages/, events.jsonl
   departments/       strategy, marketing, sales, finance, tech, consulting, audit
 ```
 
-## End of a session
+## End of a session, and how the team remembers
 
-Add the decisions of the session to `workspace/org/journal.md`: one dated line each, with the reason.
+A conversation ends, the company does not. Everything that must survive the day goes into files:
+
+- `node tools/memory.mjs remember "..."` for a lasting fact or preference of the owner ("validates
+  every message himself", "never says X"). One line, no long content. Read at every session start.
+- `workspace/org/journal.md`: the decisions of the session, one dated line each, with the reason.
+- The work itself: leads, drafts, documents, artifacts, board. Never keep it only in the conversation.
+
+Say in one line what you wrote down. If the owner corrects you twice on the same point, remember it.
